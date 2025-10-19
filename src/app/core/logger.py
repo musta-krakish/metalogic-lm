@@ -9,10 +9,24 @@ console_handler = logging.StreamHandler()
 console_handler.setFormatter(logging.Formatter("[%(asctime)s] [%(levelname)s] %(message)s"))
 logger.addHandler(console_handler)
 
-def log_to_db(level: str, message: str, path: str = None, method: str = None):
+def log_to_db(
+    level: str, 
+    message: str, 
+    path: str = None, 
+    method: str = None,
+    ip_address: str = None,
+    metadata: dict = None
+):
     db = SessionLocal()
     try:
-        entry = LogEntry(level=level, message=message, path=path, method=method)
+        entry = LogEntry(
+            level=level, 
+            message=message, 
+            path=path, 
+            method=method,
+            ip_address=ip_address,
+            data=metadata
+        )
         db.add(entry)
         db.commit()
     except Exception as e:

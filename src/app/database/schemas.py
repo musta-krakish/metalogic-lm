@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, DateTime, Text, JSON,  func
+from sqlalchemy import Column, Integer, String, Enum, DateTime, Text, JSON, func
 from datetime import datetime
 from .database import Base
 import enum
@@ -24,8 +24,9 @@ class LogEntry(Base):
     message = Column(Text)
     path = Column(String, nullable=True)
     method = Column(String, nullable=True)
+    ip_address = Column(String, nullable=True, index=True)  
+    data = Column(JSON, nullable=True)  
     created_at = Column(DateTime, default=datetime.utcnow)
-    
 
 class LicenseIiko(Base):
     __tablename__ = "licenses_iiko"
@@ -33,4 +34,3 @@ class LicenseIiko(Base):
     id = Column(Integer, primary_key=True, index=True)
     data = Column(JSON, nullable=False)  
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
-

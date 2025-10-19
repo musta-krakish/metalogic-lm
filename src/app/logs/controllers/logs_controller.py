@@ -30,7 +30,9 @@ class LogsController:
                     "message": log.message,
                     "path": log.path,
                     "method": log.method,
+                    "ip_addres": log.ip_address,
                     "created_at": log.created_at.isoformat(),
+                    "metadata": log.data
                 }
                 for log in logs
             ]

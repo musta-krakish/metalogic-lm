@@ -1,29 +1,39 @@
 import api from "@/lib/axios";
-
-export interface License {
-    id: number;
-    data: Record<string, any>;
-    updated_at: string;
-}
+import type { IIkoLicensesResponse, IIkoLicenseFilters } from "@/types/license";
 
 export const IikoService = {
-    async getLicenses(page = 1, limit = 10) {
-        const { data } = await api.get(`/iiko/licenses?page=${page}&limit=${limit}`);
+    async getLicenses(
+        page = 1,
+        limit = 10,
+        filters: IIkoLicenseFilters = {}
+    ): Promise<IIkoLicensesResponse> {
+        const params = new URLSearchParams(
+            //@ts-ignore
+            {
+                page: page.toString(),
+                limit: limit.toString(),
+                ...filters
+            });
+
+        const { data } = await api.get(`/iiko/licenses?${params}`);
         return data;
     },
 
-    async updateLicenses() {
-        const { data } = await api.post(`/iiko/update`);
+    async exportLicenses(filters: IIkoLicenseFilters = {}): Promise<Blob> {
+        const params = new URLSearchParams(
+            //@ts-ignore    
+            {
+                ...filters
+            });
+
+        const { data } = await api.get(`/iiko/licenses/export?${params}`, {
+            responseType: 'blob'
+        });
         return data;
     },
 
     async createLicense(uid: string, title: string) {
         const { data } = await api.post(`/iiko/license/create`, { uid, title });
-        return data;
-    },
-
-    async verifyLicense(licenseCode: string) {
-        const { data } = await api.post(`/iiko/license/verify`, { license_code: licenseCode });
         return data;
     },
 };
