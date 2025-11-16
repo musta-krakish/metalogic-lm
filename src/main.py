@@ -9,8 +9,6 @@ from app.core.custom_logger import LoggedFastAPI
 from app.auth.routes.auth_routes import router as auth_router
 from app.iiko.routes.iiko_routes import router as iiko_router
 from app.logs.routes.logs_routes import router as logs_router
-from app.tinda.routes.tinda_routes import router as tinda_router
-from app.arca.routes.arca_routes import router as arca_router
 from app.database.database import Base, engine
 from app.seeders.seed_admin import run_seed
 
@@ -24,8 +22,6 @@ def startup_event():
 app.include_router(auth_router, prefix="/api")
 app.include_router(iiko_router, prefix="/api")
 app.include_router(logs_router, prefix="/api")
-app.include_router(tinda_router, prefix="/api")
-app.include_router(arca_router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,
