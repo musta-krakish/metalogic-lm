@@ -49,3 +49,10 @@ class TindaUser(Base):
     id = Column(Integer, primary_key=True, index=True)
     data = Column(JSON, nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+class TsdUser(Base):
+    __tablename__ = "tsd_users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    data = Column(JSON, nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

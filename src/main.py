@@ -13,7 +13,7 @@ from app.tinda.routes.tinda_routes import router as tinda_router
 from app.arca.routes.arca_routes import router as arca_router
 from app.database.database import Base, engine
 from app.seeders.seed_admin import run_seed
-
+from app.tsd.routes.tsd_routes import router as tsd_router
 app = LoggedFastAPI(title="Integration & License Manager API")
 
 @app.on_event("startup")
@@ -26,6 +26,7 @@ app.include_router(iiko_router, prefix="/api")
 app.include_router(logs_router, prefix="/api")
 app.include_router(tinda_router, prefix="/api")
 app.include_router(arca_router, prefix="/api")
+app.include_router(tsd_router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,
