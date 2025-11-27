@@ -7,6 +7,7 @@ import pandas as pd
 from datetime import datetime
 from app.database.schemas import LicenseIiko
 from app.core.logger import logger, log_to_db
+from app.iiko.controllers.iiko_scheduler import IikoScheduler
 
 class IikoController:
     API_URL = "https://api.lm.gosu.kz/license"
@@ -262,7 +263,7 @@ class IikoController:
 
     @classmethod
     def verify_license(cls, license_code: str, ap_uid: str = "-", ap_online: bool = False,
-                       deviceid=None, device_name=None, datetime=None, request=None, responce=None, error=None):
+                       deviceid=None, device_name=None, datetime=None, request=None, response=None, error=None):
         try:
             payload = {
                 "license": license_code,
@@ -272,7 +273,7 @@ class IikoController:
                 "device_name": device_name,
                 "datetime": datetime,
                 "request": request,
-                "responce": responce,
+                "response": response,
                 "error": error
             }
             headers = {
@@ -283,9 +284,58 @@ class IikoController:
             resp = requests.post(cls.API_URL, json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()
+
+            IikoScheduler.update_licenses()
+
             log_to_db("INFO", f"Verified iiko license {license_code[:12]}...")
             return data
         except Exception as e:
             logger.error(f"Ошибка проверки лицензии: {e}")
             log_to_db("ERROR", f"Failed to verify license: {e}")
             raise HTTPException(status_code=500, detail=str(e))
+
+    @classmethod
+    def set_license_active(cls, license_id: str, is_active: bool):
+        try:
+            url = f"{cls.API_URL}/edit/{license_id}"
+            payload = {"isActive": is_active}
+            headers = {
+                "Accept": "*/*",
+                "Content-Type": "application/json",
+                "ApiKey": cls.API_KEY,
+            }
+
+            resp = requests.patch(url, json=payload, headers=headers)
+            resp.raise_for_status()
+            try:
+                data = resp.json()
+            except ValueError:
+                data = {"raw_response": resp.text or None}
+
+            state = "activated" if is_active else "deactivated"
+            logger.info(f"iiko license {license_id} {state}")
+            log_to_db(
+                "INFO",
+                f"iiko license {license_id} {state} via API",
+            )
+
+            IikoScheduler.update_licenses()
+
+            return {
+                "status": "ok",
+                "upstream_status": resp.status_code,
+                "data": data,
+            }
+        except Exception as e:
+            state = "activate" if is_active else "deactivate"
+            logger.error(f"Failed to {state} iiko license {license_id}: {e}")
+            log_to_db("ERROR", f"Failed to {state} iiko license {license_id}: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @classmethod
+    def activate_license(cls, license_id: str):
+        return cls.set_license_active(license_id, True)
+
+    @classmethod
+    def deactivate_license(cls, license_id: str):
+        return cls.set_license_active(license_id, False)

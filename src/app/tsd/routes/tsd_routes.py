@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.responses import StreamingResponse
 from app.tsd.controllers.tsd_controller import TsdController
 from app.tsd.controllers.tsd_scheduler import TsdScheduler
@@ -8,7 +8,7 @@ from app.auth.models.auth_models import UserRole
 router = APIRouter(
     prefix="/tsd",
     tags=["tsd"],
-    dependencies=[require_role(UserRole.admin)]
+    dependencies=[Depends(require_role(UserRole.admin))]
 )
 
 @router.get("/users")

@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.responses import StreamingResponse
 
 from app.tinda.controllers.tinda_controller import TindaController
@@ -10,7 +10,7 @@ from app.auth.models.auth_models import UserRole
 router = APIRouter(
     prefix="/tinda",
     tags=["tinda"],
-    dependencies=[require_role(UserRole.admin)]
+    dependencies=[Depends(require_role(UserRole.admin))]
 )
 
 @router.get("/users")

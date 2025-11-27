@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from app.arca.controllers.arca_controller import ArcaController
 from app.arca.controllers.arca_scheduler import ArcaScheduler
@@ -8,7 +8,7 @@ from app.auth.models.auth_models import UserRole
 router = APIRouter(
     prefix="/arca",
     tags=["arca"],
-    dependencies=[require_role(UserRole.admin)]
+    dependencies=[Depends(require_role(UserRole.admin))]
 )
 
 @router.get("/licenses")

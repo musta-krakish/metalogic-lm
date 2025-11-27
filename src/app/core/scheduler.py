@@ -1,7 +1,8 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
 from app.database.database import SessionLocal
-from app.core.logger import LogEntry, logger
+from app.database.schemas import LogEntry
+from app.core.logger import logger
 from app.iiko.controllers.iiko_scheduler import IikoScheduler
 
 def cleanup_old_logs():
