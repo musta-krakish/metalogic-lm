@@ -7,7 +7,5 @@ class TindaScheduler:
         try:
             TindaController.sync_users()
             logger.info("Tinda users updated successfully")
-            log_to_db("INFO", "Tinda users updated")
         except Exception as e:
             logger.error(f"Error updating Tinda users: {e}")
-            log_to_db("ERROR", f"Error updating Tinda users: {e}")

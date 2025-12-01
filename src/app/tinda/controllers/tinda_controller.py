@@ -4,6 +4,7 @@ import io
 import pandas as pd
 
 from fastapi import HTTPException
+from sqlalchemy import text, func, or_, cast, Boolean
 from app.database.database import SessionLocal
 from app.database.schemas import TindaUser
 from app.core.logger import logger, log_to_db
@@ -17,7 +18,6 @@ class TindaController:
 
     @classmethod
     def _get_token(cls) -> str:
-        """Логинимся в Tinda и получаем JWT-токен."""
         url = f"{cls.BASE_URL}login"
         payload = {
             "username": cls.USERNAME,
@@ -26,9 +26,9 @@ class TindaController:
         try:
             resp = requests.post(url, json=payload)
             resp.raise_for_status()
-            token = resp.json() if isinstance(resp.json(), str) else resp.json().get("token")  # подстрахуемся
+            token = resp.text.strip().replace('"', '')
             if not token:
-                raise ValueError("Tinda login: empty token")
+                raise RuntimeError("Пустой токен от Tinda")
             return token
         except Exception as e:
             logger.error(f"Tinda login failed: {e}")
@@ -39,14 +39,54 @@ class TindaController:
     def _get_headers(cls) -> dict:
         token = cls._get_token()
         return {
-            "Authorization": f"Bearer {token}"
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
         }
 
-    # ------- СИНХРОНИЗАЦИЯ / ЧТЕНИЕ -------
+    @staticmethod
+    def _build_filtered_query(db, search: str | None = None,
+                              status: str | None = None,
+                              org: str | None = None,
+                              bin_value: str | None = None):
+
+        query = db.query(TindaUser)
+
+        if search:
+            pattern = f"%{search.lower()}%"
+            search_condition = or_(
+                func.lower(text("data->>'login'")).like(pattern),
+                func.lower(text("data->>'org'")).like(pattern),
+                func.lower(text("data->>'bin'")).like(pattern),
+            )
+            query = query.filter(search_condition)
+
+        if status and status != "all":
+            is_active_field = TindaUser.data.op('->>')('isActive')
+
+            if status == "active":
+                query = query.filter(cast(is_active_field, Boolean).is_(True))
+            elif status == "inactive":
+                query = query.filter(cast(is_active_field, Boolean).is_(False))
+
+        if org:
+            org_pattern = f"%{org.lower()}%"
+            org_condition = text("LOWER(data->>'org') LIKE :org_pattern").bindparams(
+                org_pattern=org_pattern
+            )
+            query = query.filter(org_condition)
+
+        if bin_value:
+            bin_pattern = f"%{bin_value}%"
+            bin_condition = text("data->>'bin' LIKE :bin_pattern").bindparams(
+                bin_pattern=bin_pattern
+            )
+            query = query.filter(bin_condition)
+
+        return query
+
 
     @classmethod
     def sync_users(cls):
-        """Подтянуть всех пользователей из Tinda и сохранить в БД."""
         db = SessionLocal()
         try:
             headers = cls._get_headers()
@@ -55,7 +95,6 @@ class TindaController:
             resp.raise_for_status()
             data = resp.json()
 
-            # Ожидаем, что data — список пользователей
             if not isinstance(data, list):
                 logger.warning("Tinda GetUsers returned non-list response")
                 data = []
@@ -76,31 +115,103 @@ class TindaController:
             db.close()
 
     @staticmethod
-    def get_users():
-        """Вернуть пользователей из локальной БД."""
+    def get_users(
+            page: int = 1,
+            limit: int = 50,
+            search: str | None = None,
+            status: str | None = None,
+            org: str | None = None,
+            bin_value: str | None = None,
+    ):
         db = SessionLocal()
         try:
-            rows = db.query(TindaUser).order_by(TindaUser.updated_at.desc()).all()
-            return [r.data for r in rows]
+            query = TindaController._build_filtered_query(
+                db, search, status, org, bin_value
+            )
+
+            total = query.count()
+            query = query.order_by(TindaUser.updated_at.desc())
+
+            users = (
+                query.offset((page - 1) * limit)
+                .limit(limit)
+                .all()
+            )
+
+            items = [u.data for u in users]
+
+            return {
+                "page": page,
+                "limit": limit,
+                "total": total,
+                "items": items,
+            }
         finally:
             db.close()
 
     @staticmethod
-    def export_users_to_excel():
-        """Выгрузить пользователей Tinda в Excel"""
+    def export_users_to_excel(
+            search: str | None = None,
+            status: str | None = None,
+            org: str | None = None,
+            bin_value: str | None = None,
+    ):
         db = SessionLocal()
         try:
-            rows = db.query(TindaUser).order_by(TindaUser.updated_at.desc()).all()
-            data = [r.data for r in rows]
+            query = TindaController._build_filtered_query(
+                db, search, status, org, bin_value
+            )
+            query = query.order_by(TindaUser.updated_at.desc())
+            users = query.all()
 
-            if data:
-                df = pd.DataFrame(data)
+            rows = []
+            for u in users:
+                item = u.data
+
+                expire_raw = item.get("expireDate", "")
+                create_raw = item.get("createDate", "")
+
+                expire_formatted = expire_raw
+                if expire_raw:
+                    try:
+                        dt = datetime.fromisoformat(expire_raw.replace("Z", "+00:00"))
+                        expire_formatted = dt.strftime("%d.%m.%Y %H:%M")
+                    except:
+                        pass
+
+                rows.append({
+                    "Id": item.get("_Id"),
+                    "Login": item.get("login", ""),
+                    "Organization": item.get("org", ""),
+                    "BIN": item.get("bin", ""),
+                    "Status": "Active" if item.get("isActive") else "Inactive",
+                    "Role": item.get("role", ""),
+                    "Create Date": create_raw,
+                    "Expire Date": expire_formatted
+                })
+
+            if rows:
+                df = pd.DataFrame(rows)
             else:
-                df = pd.DataFrame()
+                df = pd.DataFrame(
+                    columns=["Login", "Organization", "BIN", "Status", "Role", "Create Date", "Expire Date"])
 
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine="openpyxl") as writer:
                 df.to_excel(writer, sheet_name="TindaUsers", index=False)
+
+                worksheet = writer.sheets['TindaUsers']
+                for column in worksheet.columns:
+                    max_length = 0
+                    column = [cell for cell in column]
+                    for cell in column:
+                        try:
+                            if len(str(cell.value)) > max_length:
+                                max_length = len(str(cell.value))
+                        except:
+                            pass
+                    adjusted_width = (max_length + 2)
+                    worksheet.column_dimensions[column[0].column_letter].width = adjusted_width
 
             output.seek(0)
             filename = f"tinda_users_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
@@ -108,17 +219,34 @@ class TindaController:
         finally:
             db.close()
 
-    # ------- ОПЕРАЦИИ С ПОЛЬЗОВАТЕЛЯМИ -------
-
+    # ри выдаче любой даты отдает и на in ему тоже похуй
     @classmethod
-    def create_user(cls, payload: dict):
+    def create_user(cls, username: str, password: str, org: str, bin_val: str, expire_date: str, role: int):
         try:
             headers = cls._get_headers()
             url = f"{cls.BASE_URL}Register"
+
+            payload = {
+                "username": username,
+                "password": password,
+                "org": org,
+                "bin": bin_val,
+                "expireDate": expire_date,
+                "role": role
+            }
+
             resp = requests.post(url, json=payload, headers=headers)
             resp.raise_for_status()
-            data = resp.json()
-            log_to_db("INFO", f"Created Tinda user: {payload.get('username')}")
+
+            try:
+                data = resp.json()
+            except:
+                data = {"message": resp.text}
+
+            log_to_db("INFO", f"Created Tinda user: {username}")
+
+            cls.sync_users()
+
             return data
         except Exception as e:
             logger.error(f"Tinda create_user failed: {e}")
@@ -126,63 +254,67 @@ class TindaController:
             raise HTTPException(status_code=500, detail=str(e))
 
     @classmethod
-    def set_org(cls, user_id: int, org: str):
+    def set_org(cls, user_id: str, org: str):
         try:
             headers = cls._get_headers()
             url = f"{cls.BASE_URL}Admin/SetOrg/{user_id}"
             params = {"Org": org}
+
             resp = requests.patch(url, params=params, headers=headers)
             resp.raise_for_status()
-            data = resp.json()
+
             log_to_db("INFO", f"Tinda set_org for user {user_id} -> {org}")
-            return data
+            cls.sync_users()
+            return {"status": "ok", "message": "Organization updated"}
         except Exception as e:
             logger.error(f"Tinda set_org failed: {e}")
-            log_to_db("ERROR", f"Tinda set_org failed: {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
     @classmethod
-    def set_active(cls, user_id: int):
+    def set_active(cls, user_id: str):
         try:
             headers = cls._get_headers()
             url = f"{cls.BASE_URL}Admin/SetActive/{user_id}"
             resp = requests.patch(url, headers=headers)
             resp.raise_for_status()
-            data = resp.json()
+
             log_to_db("INFO", f"Tinda set_active for user {user_id}")
-            return data
+            cls.sync_users()
+            return {"status": "ok", "message": "Active status toggled"}
         except Exception as e:
             logger.error(f"Tinda set_active failed: {e}")
-            log_to_db("ERROR", f"Tinda set_active failed: {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
     @classmethod
-    def set_bin(cls, user_id: int, bin_value: str):
+    def set_bin(cls, user_id: str, bin_value: str):
         try:
             headers = cls._get_headers()
             url = f"{cls.BASE_URL}Admin/SetBIN/{user_id}"
             params = {"bin": bin_value}
+
             resp = requests.patch(url, params=params, headers=headers)
             resp.raise_for_status()
-            data = resp.json()
+
             log_to_db("INFO", f"Tinda set_bin for user {user_id} -> {bin_value}")
-            return data
+            cls.sync_users()
+            return {"status": "ok", "message": "BIN updated"}
         except Exception as e:
             logger.error(f"Tinda set_bin failed: {e}")
-            log_to_db("ERROR", f"Tinda set_bin failed: {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
     @classmethod
-    def set_expire_date(cls, user_id: int, expire_date: str):
+    def set_expire_date(cls, user_id: str, expire_date: str):
         try:
             headers = cls._get_headers()
-            url = f"{cls.BASE_URL}Admin/SetExpireDate/{user_id}&date={expire_date}"
-            resp = requests.patch(url, headers=headers)
+            url = f"{cls.BASE_URL}Admin/SetExpireDate/{user_id}"
+            params = {"date": expire_date}
+
+            resp = requests.patch(url, params=params, headers=headers)
             resp.raise_for_status()
-            data = resp.json()
+
             log_to_db("INFO", f"Tinda set_expire_date for user {user_id} -> {expire_date}")
-            return data
+            cls.sync_users()
+            return {"status": "ok", "message": "Expire date updated"}
         except Exception as e:
             logger.error(f"Tinda set_expire_date failed: {e}")
-            log_to_db("ERROR", f"Tinda set_expire_date failed: {e}")
             raise HTTPException(status_code=500, detail=str(e))

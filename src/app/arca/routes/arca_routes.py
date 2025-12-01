@@ -24,7 +24,7 @@ router = APIRouter(
 @router.get("/licenses")
 def get_licenses(
     page: int = Query(1, ge=1),
-    limit: int = Query(50, le=500),
+    limit: int = Query(10, le=100),
     search: str | None = None,
     status: str | None = None,
     org: str | None = None,
