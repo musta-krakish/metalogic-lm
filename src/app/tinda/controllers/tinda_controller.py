@@ -7,12 +7,13 @@ from fastapi import HTTPException
 from app.database.database import SessionLocal
 from app.database.schemas import TindaUser
 from app.core.logger import logger, log_to_db
+from app.core.config import settings
 
 
 class TindaController:
-    BASE_URL = "https://tinda.4dev.kz/"
-    USERNAME = "tindaadmin"
-    PASSWORD = "vbnJ456#"
+    BASE_URL = settings.TINDA_BASE_URL
+    USERNAME = settings.TINDA_USERNAME
+    PASSWORD = settings.TINDA_PASSWORD
 
     @classmethod
     def _get_token(cls) -> str:

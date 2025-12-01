@@ -2,10 +2,11 @@ import requests
 from app.database.database import SessionLocal
 from app.database.schemas import LicenseIiko
 from app.core.logger import logger, log_to_db
+from app.core.config import settings
 
 class IikoScheduler:
-    API_URL = "https://api.lm.gosu.kz/license"
-    API_KEY = "liErLyguNEOLOwPOLINIteRFloGAgEackWaRSONiaHLocrECTa"
+    API_URL = settings.IIKO_API_URL
+    API_KEY = settings.IIKO_API_KEY
 
     @classmethod
     def update_licenses(cls):

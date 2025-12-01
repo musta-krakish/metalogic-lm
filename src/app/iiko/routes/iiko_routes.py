@@ -74,10 +74,12 @@ def create_license(payload: CreateLicenseDto):
     return IikoController.create_license(**payload.dict())
 
 # Ставит поля isOnline и isEnabled в статус true, но только со второго раза, хз почему
+# Сюда кидаем licenseCode в JSON body
 @router.post("/license/verify")
 def verify_license(payload: VerifyLicenseDto):
     return IikoController.verify_license(**payload.dict())
 
+# В эти кидать license.id он сидит под полем isOnline
 @router.post("/license/{license_id}/activate")
 def activate_license(license_id: str = Path(...)):
     return IikoController.activate_license(license_id)

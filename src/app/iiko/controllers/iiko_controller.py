@@ -8,10 +8,11 @@ from datetime import datetime
 from app.database.schemas import LicenseIiko
 from app.core.logger import logger, log_to_db
 from app.iiko.controllers.iiko_scheduler import IikoScheduler
+from app.core.config import settings
 
 class IikoController:
-    API_URL = "https://api.lm.gosu.kz/license"
-    API_KEY = "liErLyguNEOLOwPOLINIteRFloGAgEackWaRSONiaHLocrECTa"
+    API_URL = settings.IIKO_API_URL
+    API_KEY = settings.IIKO_API_KEY
 
     @staticmethod
     def get_licenses(

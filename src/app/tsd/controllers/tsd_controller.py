@@ -6,15 +6,16 @@ from app.database.schemas import TsdUser
 from app.core.logger import logger, log_to_db
 import pandas as pd
 import io
+from app.core.config import settings
 
 
 class TsdController:
-    BASE_URL = "https://bapi.4dev.kz/"
-    USERNAME = "bridgeadmin"
-    PASSWORD = "vbnJ456#"
-    DEVICE_ID = "string"
-    DEVICE_NAME = "string"
-    ROLE = "string"
+    BASE_URL = settings.TSD_BASE_URL
+    USERNAME = settings.TSD_USERNAME
+    PASSWORD = settings.TSD_PASSWORD
+    DEVICE_ID = settings.TSD_DEVICE_ID
+    DEVICE_NAME = settings.TSD_DEVICE_NAME
+    ROLE = settings.TSD_ROLE
 
     @classmethod
     def _login(cls):

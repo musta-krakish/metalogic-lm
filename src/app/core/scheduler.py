@@ -4,6 +4,7 @@ from app.database.database import SessionLocal
 from app.database.schemas import LogEntry
 from app.core.logger import logger
 from app.iiko.controllers.iiko_scheduler import IikoScheduler
+from app.arca.controllers.arca_scheduler import ArcaScheduler
 
 def cleanup_old_logs():
     """Удаляет логи старше 7 дней"""
@@ -22,7 +23,12 @@ def update_iiko_licenses_job():
     logger.info("Обновление лицензий iiko...")
     IikoScheduler.update_licenses()
 
+def update_arca_licenses_job():
+    logger.info("Обновление лицензий arca...")
+    ArcaScheduler.update_licenses()
+
 scheduler = BackgroundScheduler()
 scheduler.add_job(cleanup_old_logs, "interval", days=7)
 scheduler.add_job(update_iiko_licenses_job, "interval", hours=1)
+scheduler.add_job(update_arca_licenses_job, "interval", hours=1)
 
