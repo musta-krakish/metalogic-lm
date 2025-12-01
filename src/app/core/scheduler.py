@@ -6,6 +6,7 @@ from app.core.logger import logger
 from app.iiko.controllers.iiko_scheduler import IikoScheduler
 from app.arca.controllers.arca_scheduler import ArcaScheduler
 from app.tinda.controllers.tinda_scheduler import TindaScheduler
+from app.tsd.controllers.tsd_scheduler import TsdScheduler
 
 def cleanup_old_logs():
     """Удаляет логи старше 7 дней"""
@@ -30,10 +31,16 @@ def update_arca_licenses_job():
 
 def update_tinda_users_job():
     logger.info("Обновление пользователей tinda...")
+    TindaScheduler.update_users()
+
+def update_tsd_users_job():
+    logger.info("Обновление пользователей tsd...")
+    TsdScheduler.update_users()
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(cleanup_old_logs, "interval", days=7)
 scheduler.add_job(update_iiko_licenses_job, "interval", hours=1)
 scheduler.add_job(update_arca_licenses_job, "interval", hours=1)
 scheduler.add_job(update_tinda_users_job, "interval", hours=1)
+scheduler.add_job(update_tsd_users_job, "interval", hours=1)
 

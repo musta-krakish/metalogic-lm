@@ -219,7 +219,7 @@ class TindaController:
         finally:
             db.close()
 
-    # ри выдаче любой даты отдает и на in ему тоже похуй
+    # при выдаче любой даты отдает одну и тоже и на bin ему тоже похуй
     @classmethod
     def create_user(cls, username: str, password: str, org: str, bin_val: str, expire_date: str, role: int):
         try:

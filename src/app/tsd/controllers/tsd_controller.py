@@ -1,11 +1,13 @@
 import requests
 from fastapi import HTTPException
+from sqlalchemy import text, func, or_, cast, Boolean
 from datetime import datetime
+import pandas as pd
+import io
+
 from app.database.database import SessionLocal
 from app.database.schemas import TsdUser
 from app.core.logger import logger, log_to_db
-import pandas as pd
-import io
 from app.core.config import settings
 
 
@@ -30,7 +32,8 @@ class TsdController:
         try:
             resp = requests.post(url, json=payload)
             resp.raise_for_status()
-            return resp.json()
+            token = resp.text.strip().replace('"', '')
+            return token
         except Exception as e:
             logger.error(f"TSD login failed: {e}")
             log_to_db("ERROR", f"TSD login failed: {e}")
@@ -40,10 +43,46 @@ class TsdController:
     def _headers(cls):
         token = cls._login()
         return {
-            "Authorization": f"Bearer {token}"
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
         }
 
-    # ----------------- USERS & SYNC -----------------
+    @staticmethod
+    def _build_filtered_query(db, search: str | None = None,
+                              status: str | None = None,
+                              org: str | None = None,
+                              bin_value: str | None = None):
+        query = db.query(TsdUser)
+
+        if search:
+            pattern = f"%{search.lower()}%"
+            search_condition = or_(
+                func.lower(text("data->>'username'")).like(pattern),
+                func.lower(text("data->>'org'")).like(pattern),
+                func.lower(text("data->>'bin'")).like(pattern),
+            )
+            query = query.filter(search_condition)
+
+        if status and status != "all":
+            is_active_field = TsdUser.data.op('->>')('isActive')
+
+            if status == "active":
+                query = query.filter(cast(is_active_field, Boolean).is_(True))
+            elif status == "inactive":
+                query = query.filter(cast(is_active_field, Boolean).is_(False))
+
+        if org:
+            org_pattern = f"%{org.lower()}%"
+            org_condition = text("LOWER(data->>'org') LIKE :org_pattern").bindparams(org_pattern=org_pattern)
+            query = query.filter(org_condition)
+
+        if bin_value:
+            bin_pattern = f"%{bin_value}%"
+            bin_condition = text("data->>'bin' LIKE :bin_pattern").bindparams(bin_pattern=bin_pattern)
+            query = query.filter(bin_condition)
+
+        return query
+
 
     @classmethod
     def sync_users(cls):
@@ -56,7 +95,6 @@ class TsdController:
             data = resp.json()
 
             if not isinstance(data, list):
-                logger.warning("TSD GetUsers returned non-list")
                 data = []
 
             db.query(TsdUser).delete()
@@ -75,48 +113,109 @@ class TsdController:
             db.close()
 
     @staticmethod
-    def get_users():
+    def get_users(
+            page: int = 1,
+            limit: int = 50,
+            search: str | None = None,
+            status: str | None = None,
+            org: str | None = None,
+            bin_value: str | None = None,
+    ):
         db = SessionLocal()
         try:
-            rows = db.query(TsdUser).order_by(TsdUser.updated_at.desc()).all()
-            return [r.data for r in rows]
+            query = TsdController._build_filtered_query(
+                db, search, status, org, bin_value
+            )
+            total = query.count()
+            query = query.order_by(TsdUser.updated_at.desc())
+            users = (
+                query.offset((page - 1) * limit)
+                .limit(limit)
+                .all()
+            )
+            items = [r.data for r in users]
+            return {"page": page, "limit": limit, "total": total, "items": items}
         finally:
             db.close()
 
     @staticmethod
-    def export_users_to_excel():
+    def export_users_to_excel(search=None, status=None, org=None, bin_value=None):
         db = SessionLocal()
         try:
-            rows = db.query(TsdUser).all()
-            data = [r.data for r in rows]
+            query = TsdController._build_filtered_query(db, search, status, org, bin_value)
+            query = query.order_by(TsdUser.updated_at.desc())
+            users = query.all()
 
-            if data:
-                df = pd.DataFrame(data)
-            else:
-                df = pd.DataFrame()
+            rows = []
+            for u in users:
+                item = u.data
+                expire_raw = item.get("expireDate", "")
+                expire_formatted = expire_raw
+                if expire_raw:
+                    try:
+                        dt = datetime.fromisoformat(expire_raw)
+                        expire_formatted = dt.strftime("%d.%m.%Y %H:%M")
+                    except Exception:
+                        pass
 
+                rows.append({
+                    "Username": item.get("username", ""),
+                    "Organization": item.get("org", ""),
+                    "BIN": item.get("bin", ""),
+                    "Role": item.get("role", ""),
+                    "Devices": item.get("availableDeviceCount", ""),
+                    "Status": "Active" if item.get("isActive") else "Inactive",
+                    "Registered": item.get("registerDate", ""),
+                    "Expires": expire_formatted
+                })
+
+            df = pd.DataFrame(rows) if rows else pd.DataFrame()
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine="openpyxl") as writer:
                 df.to_excel(writer, sheet_name="TSDUsers", index=False)
-
             output.seek(0)
             filename = f"tsd_users_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
             return output, filename
         finally:
             db.close()
 
-    # ----------------- C.R.U.D Actions -----------------
 
     @classmethod
-    def create_user(cls, payload: dict):
+    def check_user_exist(cls, username: str):
+        url = f"{cls.BASE_URL}api/Admin/GetUsers"
+        params = {"username": username}
+        try:
+            headers = cls._headers()
+            resp = requests.get(url, params=params, headers=headers)
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as e:
+            logger.error(f"TSD check_user_exist failed: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @classmethod
+    def create_user(cls, dto: dict):
         url = f"{cls.BASE_URL}api/Auth/register"
+        payload = {
+            "username": dto.get("username"),
+            "password": dto.get("password"),
+            "role": dto.get("role", "User")
+        }
+        if dto.get("org"):
+            payload["org"] = dto.get("org")
+        if dto.get("deviceID"):
+            payload["deviceID"] = dto.get("deviceID")
+        if dto.get("deviceName"):
+            payload["deviceName"] = dto.get("deviceName")
+
         try:
             headers = cls._headers()
             resp = requests.post(url, json=payload, headers=headers)
             resp.raise_for_status()
-            data = resp.json()
-            log_to_db("INFO", f"TSD created user {payload.get('username')}")
-            return data
+
+            log_to_db("INFO", f"TSD created user {dto.get('username')}")
+            cls.sync_users()
+            return resp.json()
         except Exception as e:
             logger.error(f"TSD create_user failed: {e}")
             raise HTTPException(status_code=500, detail=str(e))
@@ -130,7 +229,7 @@ class TsdController:
             resp = requests.patch(url, params=params, headers=headers)
             resp.raise_for_status()
             log_to_db("INFO", f"TSD changed password for {username}")
-            return resp.json()
+            return {"status": "ok", "message": "Active status toggled"}
         except Exception as e:
             logger.error(f"TSD set_pass failed: {e}")
             raise HTTPException(status_code=500, detail=str(e))
@@ -143,6 +242,7 @@ class TsdController:
             headers = cls._headers()
             resp = requests.patch(url, params=params, headers=headers)
             resp.raise_for_status()
+            cls.sync_users()
             return resp.json()
         except Exception as e:
             logger.error(f"TSD set_device_count failed: {e}")
@@ -156,6 +256,7 @@ class TsdController:
             headers = cls._headers()
             resp = requests.patch(url, params=params, headers=headers)
             resp.raise_for_status()
+            cls.sync_users()
             return resp.json()
         except Exception as e:
             logger.error(f"TSD set_bin failed: {e}")
@@ -169,6 +270,7 @@ class TsdController:
             headers = cls._headers()
             resp = requests.patch(url, params=params, headers=headers)
             resp.raise_for_status()
+            cls.sync_users()
             return resp.json()
         except Exception as e:
             logger.error(f"TSD set_org failed: {e}")
@@ -176,13 +278,22 @@ class TsdController:
 
     @classmethod
     def set_expire(cls, username: str, expire_date: str):
-        """expire_date формат YYYY-MM-DDTHH:MM:SS"""
         url = f"{cls.BASE_URL}api/Admin/SetExpireDate"
-        params = {"username": username, "expireDate": expire_date}
+        try:
+            dt = datetime.fromisoformat(expire_date.replace("Z", "+00:00"))
+            formatted_date = dt.strftime("%Y-%m-%dT%H:%M:%S")
+        except ValueError:
+            formatted_date = expire_date
+
+        params = {"username": username, "expireDate": formatted_date}
+
         try:
             headers = cls._headers()
             resp = requests.patch(url, params=params, headers=headers)
             resp.raise_for_status()
+
+            log_to_db("INFO", f"TSD set expire {username} -> {formatted_date}")
+            cls.sync_users()
             return resp.json()
         except Exception as e:
             logger.error(f"TSD set_expire failed: {e}")
@@ -209,6 +320,8 @@ class TsdController:
             headers = cls._headers()
             resp = requests.delete(url, params=params, headers=headers)
             resp.raise_for_status()
+            log_to_db("INFO", f"TSD deleted user {username}")
+            cls.sync_users()
             return resp.json()
         except Exception as e:
             logger.error(f"TSD delete_user failed: {e}")
@@ -222,6 +335,8 @@ class TsdController:
             headers = cls._headers()
             resp = requests.patch(url, params=params, headers=headers)
             resp.raise_for_status()
+            log_to_db("INFO", f"TSD toggled active {username}")
+            cls.sync_users()
             return resp.json()
         except Exception as e:
             logger.error(f"TSD active_user failed: {e}")
