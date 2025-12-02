@@ -68,7 +68,7 @@ def update_iiko():
     IikoScheduler.update_licenses()
     return {"status": "ok", "message": "iiko licenses updated"}
 
-
+# как буд то не работает
 @router.post("/license/create")
 def create_license(payload: CreateLicenseDto):
     return IikoController.create_license(**payload.dict())
