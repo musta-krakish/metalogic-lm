@@ -11,19 +11,15 @@ import { ArcaLicenseCard } from "./ArcaLicenseCard";
 import { Pagination } from "./Pagination";
 
 export function ArcaLicenses() {
-    // State
     const [data, setData] = useState<{ items: ArcaLicense[], total: number }>({ items: [], total: 0 });
     const [loading, setLoading] = useState(false);
     const [page, setPage] = useState(1);
     const [filters, setFilters] = useState<ArcaFilters>({ status: 'all' });
 
-    // Modal State
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editingLicense, setEditingLicense] = useState<ArcaLicense | null>(null);
 
-    // Form State
-    // ИСПРАВЛЕНИЕ 1: Объединяем типы, чтобы state поддерживал и status, и поля создания
     const [formData, setFormData] = useState<Partial<ArcaCreateDto & ArcaEditDto>>({});
 
     const fetchLicenses = async () => {
@@ -38,20 +34,13 @@ export function ArcaLicenses() {
         }
     };
 
-    useEffect(() => {
-        fetchLicenses();
-    }, [page, filters]);
+    useEffect(() => { fetchLicenses(); }, [page, filters]);
 
     const handleSync = async () => {
         setLoading(true);
-        try {
-            await ArcaService.syncLicenses();
-            await fetchLicenses();
-        } catch (error) {
-            console.error(error); // ИСПРАВЛЕНИЕ 2: Используем переменную error
-        } finally {
-            setLoading(false);
-        }
+        try { await ArcaService.syncLicenses(); await fetchLicenses(); }
+        catch (error) { console.error(error); }
+        finally { setLoading(false); }
     };
 
     const handleCreate = async () => {
@@ -66,13 +55,49 @@ export function ArcaLicenses() {
         }
     };
 
+    const handleDelete = async (mac: string) => {
+        if (!confirm(`Удалить лицензию ${mac}?`)) return;
+        try { await ArcaService.deleteLicense(mac); fetchLicenses(); }
+        catch (error) { console.error(error); }
+    };
+
+    const handleToggleActive = async (mac: string) => {
+        try { await ArcaService.toggleActive(mac); fetchLicenses(); }
+        catch (error) { console.error(error); }
+    };
+
+    const handleExport = async () => {
+        try {
+            const blob = await ArcaService.exportLicenses(filters);
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `arca_licenses.xlsx`;
+            a.click();
+        } catch (error) { console.error(error); }
+    };
+
+
     const handleUpdate = async () => {
         if (!editingLicense) return;
         try {
-            await ArcaService.updateLicense({
+            const promises = [];
+
+            if (formData.expire_date) {
+                promises.push(ArcaService.setExpireDate(editingLicense.mac_address, formData.expire_date));
+            }
+
+            promises.push(ArcaService.updateLicense({
                 mac_address: editingLicense.mac_address,
-                ...formData
-            } as ArcaEditDto);
+                license_key: formData.license_key,
+                license_date: formData.license_date,
+                org: formData.org,
+                bin: formData.bin,
+                status: formData.status
+            }));
+
+            await Promise.all(promises);
+
             setIsEditOpen(false);
             setEditingLicense(null);
             setFormData({});
@@ -83,53 +108,26 @@ export function ArcaLicenses() {
         }
     };
 
-    const handleDelete = async (mac: string) => {
-        if (!confirm(`Удалить лицензию ${mac}?`)) return;
-        try {
-            await ArcaService.deleteLicense(mac);
-            fetchLicenses();
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const handleToggleActive = async (mac: string) => {
-        try {
-            await ArcaService.toggleActive(mac);
-            fetchLicenses();
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
     const openEdit = (license: ArcaLicense) => {
         setEditingLicense(license);
         setFormData({
             org: license.org,
             bin: license.bin,
             license_key: license.licences_key || license.license_key,
-            license_date: license.licences_date || license.license_date,
+
+            license_date: license.licences_date ? license.licences_date.split('T')[0] :
+                          license.license_date ? license.license_date.split('T')[0] : '',
+
+            expire_date: license.expire_date ? license.expire_date.split('T')[0] : '',
+
             status: license.status
         });
         setIsEditOpen(true);
     };
 
-    const handleExport = async () => {
-        try {
-            const blob = await ArcaService.exportLicenses(filters);
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `arca_licenses_${new Date().toISOString().split('T')[0]}.xlsx`;
-            a.click();
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
     return (
         <div className="space-y-6">
-            {/* Toolbar */}
+            {/* Toolbar (Без изменений) */}
             <div className="flex flex-col sm:flex-row justify-between gap-4">
                 <div className="flex flex-1 gap-4">
                     <div className="relative flex-1 max-w-sm">
@@ -142,7 +140,6 @@ export function ArcaLicenses() {
                     </div>
                     <Select
                         value={filters.status}
-                        // ИСПРАВЛЕНИЕ 3: Явный тип string вместо any
                         onValueChange={(v: string) => setFilters({...filters, status: v as ArcaFilters['status']})}
                     >
                         <SelectTrigger className="w-[150px] bg-white">
@@ -170,7 +167,7 @@ export function ArcaLicenses() {
                 </div>
             </div>
 
-            {/* List */}
+            {/* List (Без изменений) */}
             <div className="space-y-4">
                 {data.items.map((license) => (
                     <ArcaLicenseCard
@@ -181,24 +178,21 @@ export function ArcaLicenses() {
                         onToggleActive={handleToggleActive}
                     />
                 ))}
-                {data.items.length === 0 && !loading && (
-                    <div className="text-center py-10 text-gray-500">Лицензии не найдены</div>
-                )}
             </div>
 
-            <Pagination
+             <Pagination
                 currentPage={page}
                 totalPages={Math.ceil(data.total / 10)}
                 onPageChange={setPage}
                 loading={loading}
             />
 
-            {/* Create Dialog */}
+            {/* Create Dialog (Без изменений) */}
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Новая лицензия Arca</DialogTitle>
-                        <DialogDescription>Заполните обязательные поля для создания лицензии.</DialogDescription>
+                        <DialogDescription>Заполните обязательные поля.</DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
@@ -249,9 +243,20 @@ export function ArcaLicenses() {
                             <Label>BIN</Label>
                             <Input defaultValue={formData.bin} onChange={(e) => setFormData({...formData, bin: e.target.value})} />
                         </div>
-                        <div className="grid gap-2">
-                            <Label>License Date</Label>
-                            <Input type="date" defaultValue={formData.license_date?.split('T')[0]} onChange={(e) => setFormData({...formData, license_date: e.target.value})} />
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label>License Date</Label>
+                                <Input type="date" defaultValue={formData.license_date} onChange={(e) => setFormData({...formData, license_date: e.target.value})} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label className="text-red-600">Expire Date</Label>
+                                <Input
+                                    type="date"
+                                    defaultValue={formData.expire_date}
+                                    onChange={(e) => setFormData({...formData, expire_date: e.target.value})}
+                                />
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>

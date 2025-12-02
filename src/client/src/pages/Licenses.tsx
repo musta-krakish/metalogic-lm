@@ -6,6 +6,7 @@ import {IikoLicenses} from "@/components/IikoLicenses";
 import {Badge} from "@/components/ui/badge";
 import {Shield, RefreshCw} from "lucide-react";
 import {ArcaLicenses} from "@/components/ArcaLicenses";
+import {TindaUsers} from "@/components/TindaUsers";
 
 export default function LicensesPage() {
     const [loading, setLoading] = useState(false);
@@ -46,19 +47,13 @@ export default function LicensesPage() {
                     >
                         <Shield className="w-4 h-4"/>
                         Arca
-                        <Badge variant="secondary" className="ml-2">
-                            Скоро
-                        </Badge>
                     </TabsTrigger>
                     <TabsTrigger
-                        value="poster"
+                        value="tinda"
                         className="flex items-center gap-2 px-6 py-3 rounded-none"
                     >
                         <Shield className="w-4 h-4"/>
-                        Poster
-                        <Badge variant="secondary" className="ml-2">
-                            Скоро
-                        </Badge>
+                        Tinda
                     </TabsTrigger>
                 </TabsList>
 
@@ -70,16 +65,8 @@ export default function LicensesPage() {
                     <ArcaLicenses/>
                 </TabsContent>
 
-                <TabsContent value="poster" className="space-y-4 mt-6">
-                    <div className="text-center py-12">
-                        <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4"/>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                            Скоро будет доступно
-                        </h3>
-                        <p className="text-gray-500">
-                            Управление лицензиями Poster появится в ближайшее время
-                        </p>
-                    </div>
+                <TabsContent value="tinda" className="space-y-4 mt-6">
+                    <TindaUsers/>
                 </TabsContent>
             </Tabs>
         </div>

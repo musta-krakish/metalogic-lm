@@ -38,6 +38,10 @@ export const ArcaService = {
         return api.patch('/arca/license/change', payload);
     },
 
+    async setExpireDate(mac_address: string, expire_date: string) {
+        return api.patch('/arca/license/expire-date', { mac_address, expire_date });
+    },
+
     async toggleActive(mac_address: string) {
         return api.patch('/arca/license/active', { mac_address });
     }

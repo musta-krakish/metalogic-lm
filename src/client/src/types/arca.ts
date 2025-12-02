@@ -1,6 +1,6 @@
 export interface ArcaLicense {
     mac_address: string;
-    licences_key?: string; 
+    licences_key?: string;
     license_key?: string;
     license_date?: string;
     licences_date?: string;
@@ -39,4 +39,5 @@ export interface ArcaEditDto {
     status?: string;
     org?: string;
     bin?: string;
+    expire_date?: string;
 }
