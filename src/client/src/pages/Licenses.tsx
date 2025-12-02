@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { IikoLicenses } from "@/components/IikoLicenses";
-import { Badge } from "@/components/ui/badge";
-import { Shield, RefreshCw } from "lucide-react";
+import {useState} from "react";
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
+import {IikoLicenses} from "@/components/IikoLicenses";
+import {Badge} from "@/components/ui/badge";
+import {Shield, RefreshCw} from "lucide-react";
+import {ArcaLicenses} from "@/components/ArcaLicenses";
 
 export default function LicensesPage() {
     const [loading, setLoading] = useState(false);
@@ -24,7 +25,7 @@ export default function LicensesPage() {
 
                 {loading && (
                     <Badge variant="secondary" className="flex items-center gap-2">
-                        <RefreshCw className="w-3 h-3 animate-spin" />
+                        <RefreshCw className="w-3 h-3 animate-spin"/>
                         Загрузка...
                     </Badge>
                 )}
@@ -36,14 +37,14 @@ export default function LicensesPage() {
                         value="iiko"
                         className="flex items-center gap-2 px-6 py-3 data-[state=active]:border-b-2 data-[state=active]:border-purple-600 data-[state=active]:text-purple-600 rounded-none"
                     >
-                        <Shield className="w-4 h-4" />
+                        <Shield className="w-4 h-4"/>
                         iiko
                     </TabsTrigger>
                     <TabsTrigger
                         value="arca"
                         className="flex items-center gap-2 px-6 py-3 rounded-none"
                     >
-                        <Shield className="w-4 h-4" />
+                        <Shield className="w-4 h-4"/>
                         Arca
                         <Badge variant="secondary" className="ml-2">
                             Скоро
@@ -53,7 +54,7 @@ export default function LicensesPage() {
                         value="poster"
                         className="flex items-center gap-2 px-6 py-3 rounded-none"
                     >
-                        <Shield className="w-4 h-4" />
+                        <Shield className="w-4 h-4"/>
                         Poster
                         <Badge variant="secondary" className="ml-2">
                             Скоро
@@ -62,24 +63,16 @@ export default function LicensesPage() {
                 </TabsList>
 
                 <TabsContent value="iiko" className="space-y-4 mt-6">
-                    <IikoLicenses onLoadingChange={setLoading} />
+                    <IikoLicenses onLoadingChange={setLoading}/>
                 </TabsContent>
 
                 <TabsContent value="arca" className="space-y-4 mt-6">
-                    <div className="text-center py-12">
-                        <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                            Скоро будет доступно
-                        </h3>
-                        <p className="text-gray-500">
-                            Управление лицензиями Arca появится в ближайшее время
-                        </p>
-                    </div>
+                    <ArcaLicenses/>
                 </TabsContent>
 
                 <TabsContent value="poster" className="space-y-4 mt-6">
                     <div className="text-center py-12">
-                        <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                        <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4"/>
                         <h3 className="text-xl font-semibold text-gray-900 mb-2">
                             Скоро будет доступно
                         </h3>
