@@ -7,6 +7,7 @@ import {Badge} from "@/components/ui/badge";
 import {Shield, RefreshCw} from "lucide-react";
 import {ArcaLicenses} from "@/components/ArcaLicenses";
 import {TindaUsers} from "@/components/TindaUsers";
+import {TsdUsers} from "@/components/TsdUsers";
 
 export default function LicensesPage() {
     const [loading, setLoading] = useState(false);
@@ -41,6 +42,7 @@ export default function LicensesPage() {
                         <Shield className="w-4 h-4"/>
                         iiko
                     </TabsTrigger>
+
                     <TabsTrigger
                         value="arca"
                         className="flex items-center gap-2 px-6 py-3 rounded-none"
@@ -48,12 +50,21 @@ export default function LicensesPage() {
                         <Shield className="w-4 h-4"/>
                         Arca
                     </TabsTrigger>
+
                     <TabsTrigger
                         value="tinda"
                         className="flex items-center gap-2 px-6 py-3 rounded-none"
                     >
                         <Shield className="w-4 h-4"/>
                         Tinda
+                    </TabsTrigger>
+
+                    <TabsTrigger
+                        value="tsd"
+                        className="flex items-center gap-2 px-6 py-3 data-[state=active]:border-b-2 data-[state=active]:border-orange-600 data-[state=active]:text-orange-600 rounded-none"
+                    >
+                        <Shield className="w-4 h-4"/>
+                        TSD
                     </TabsTrigger>
                 </TabsList>
 
@@ -67,6 +78,10 @@ export default function LicensesPage() {
 
                 <TabsContent value="tinda" className="space-y-4 mt-6">
                     <TindaUsers/>
+                </TabsContent>
+
+                <TabsContent value="tsd" className="space-y-4 mt-6">
+                    <TsdUsers/>
                 </TabsContent>
             </Tabs>
         </div>
