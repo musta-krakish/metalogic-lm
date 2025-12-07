@@ -118,4 +118,5 @@ def change_license(payload: ArcaChangeLicenseDto):
         status=payload.status,
         org=payload.org,
         bin_code=payload.bin,
+        expire_date=payload.expire_date
     )

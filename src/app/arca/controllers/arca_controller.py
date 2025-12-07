@@ -352,8 +352,9 @@ class ArcaController:
             status: Optional[str] = None,
             org: Optional[str] = None,
             bin_code: Optional[str] = None,
+            expire_date: Optional[str] = None,
     ):
-        url = f"{cls.BASE_URL}changeLineces"
+        url_change = f"{cls.BASE_URL}changeLineces"
 
         params = {
             "mac_address": mac_address,
@@ -366,18 +367,24 @@ class ArcaController:
         params = {k: v for k, v in params.items() if v is not None}
 
         try:
-            resp = requests.post(url, params=params, auth=cls._auth())
-            resp.raise_for_status()
-            try:
-                data = resp.json()
-            except ValueError:
-                data = {"raw_response": resp.text or None}
+
+            if params:
+                resp = requests.post(url_change, params=params, auth=cls._auth())
+                resp.raise_for_status()
+
+            if expire_date:
+                url_expire = f"{cls.BASE_URL}setExDate"
+                params_expire = {"mac_address": mac_address, "ExpireDate": expire_date}
+                resp_expire = requests.patch(url_expire, params=params_expire, auth=cls._auth())
+                resp_expire.raise_for_status()
+                log_to_db("INFO", f"Set expire date for ARCA license {mac_address} -> {expire_date} (via change)")
 
             log_to_db("INFO", f"Changed ARCA license {mac_address}")
 
             cls.sync_licenses()
 
-            return data
+            return {"status": "ok", "message": "License updated successfully"}
+
         except Exception as e:
             logger.error(f"Ошибка изменения ARCA лицензии {mac_address}: {e}")
             raise HTTPException(status_code=500, detail=str(e))

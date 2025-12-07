@@ -78,25 +78,19 @@ export function ArcaLicenses() {
     };
 
 
-    const handleUpdate = async () => {
+const handleUpdate = async () => {
         if (!editingLicense) return;
         try {
-            const promises = [];
 
-            if (formData.expire_date) {
-                promises.push(ArcaService.setExpireDate(editingLicense.mac_address, formData.expire_date));
-            }
-
-            promises.push(ArcaService.updateLicense({
+            await ArcaService.updateLicense({
                 mac_address: editingLicense.mac_address,
                 license_key: formData.license_key,
                 license_date: formData.license_date,
                 org: formData.org,
                 bin: formData.bin,
-                status: formData.status
-            }));
-
-            await Promise.all(promises);
+                status: formData.status,
+                expire_date: formData.expire_date
+            });
 
             setIsEditOpen(false);
             setEditingLicense(null);

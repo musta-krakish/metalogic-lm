@@ -40,3 +40,4 @@ class ArcaChangeLicenseDto(ArcaBaseMacDto):
     status: Optional[str] = None
     org: Optional[str] = None
     bin: Optional[str] = None
+    expire_date: Optional[str] = None
