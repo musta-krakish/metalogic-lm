@@ -115,14 +115,6 @@ export default function LoginPage() {
                         </Button>
                     </form>
 
-                    <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <p className="text-xs text-gray-600 text-center">
-                            <strong>Демо доступ:</strong><br />
-                            Email: admin@example.com<br />
-                            Пароль: admin123
-                        </p>
-                    </div>
-
                 </CardContent>
             </Card>
 
