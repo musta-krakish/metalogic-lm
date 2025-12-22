@@ -1,0 +1,35 @@
+services:
+  api:
+    container_name: lm-api
+    build:
+      context: .
+      dockerfile: src/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    networks:
+      - lm-network
+
+  db:
+    container_name: lm-db
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lm-network
+
+volumes:
+  postgres_data:
+
+networks:
+  lm-network:
+    driver: bridge

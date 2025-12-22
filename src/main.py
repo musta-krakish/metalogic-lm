@@ -1,26 +1,36 @@
 import os
-import uvicorn
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.custom_logger import LoggedFastAPI
+from app.database.database import Base, engine
+from app.seeders.seed_admin import run_seed
+
 from app.auth.routes.auth_routes import router as auth_router
 from app.iiko.routes.iiko_routes import router as iiko_router
 from app.logs.routes.logs_routes import router as logs_router
 from app.tinda.routes.tinda_routes import router as tinda_router
 from app.arca.routes.arca_routes import router as arca_router
-from app.database.database import Base, engine
-from app.seeders.seed_admin import run_seed
 from app.tsd.routes.tsd_routes import router as tsd_router
-app = LoggedFastAPI(title="Integration & License Manager API")
 
-@app.on_event("startup")
-def startup_event():
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     run_seed()
+    yield
 
+
+app = LoggedFastAPI(
+    title="Integration & License Manager API",
+    lifespan=lifespan
+)
+
+# ---------- API ----------
 app.include_router(auth_router, prefix="/api")
 app.include_router(iiko_router, prefix="/api")
 app.include_router(logs_router, prefix="/api")
@@ -28,28 +38,39 @@ app.include_router(tinda_router, prefix="/api")
 app.include_router(arca_router, prefix="/api")
 app.include_router(tsd_router, prefix="/api")
 
+# ---------- CORS ----------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-frontend_dir = os.path.join(os.path.dirname(__file__), "client_dist")
-if os.path.exists(frontend_dir):
-    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+# ---------- FRONTEND ----------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.join(BASE_DIR, "client_dist")
 
-@app.get("/{full_path:path}")
-async def serve_react(full_path: str):
-    index_path = os.path.join(frontend_dir, "index.html")
-    if os.path.exists(index_path):
-        return FileResponse(index_path)
-    return {"detail": "Frontend not built"}
+if os.path.exists(FRONTEND_DIR):
+    app.mount(
+        "/assets",
+        StaticFiles(directory=os.path.join(FRONTEND_DIR, "assets")),
+        name="assets"
+    )
 
-@app.get("/")
-def root():
-    return {"status": "ok", "message": "API is running"}
+    @app.get("/", include_in_schema=False)
+    async def serve_index():
+        return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa(full_path: str):
+        index_path = os.path.join(FRONTEND_DIR, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        return {"detail": "Frontend not built"}
+
+
+# --------- HEALTH ---------
+@app.get("/health", include_in_schema=False)
+def health():
+    return {"status": "ok"}

@@ -3,7 +3,7 @@ import { IikoService } from "@/services/iiko.service";
 import type { IIkoLicenseItem, IIkoLicenseFilters } from "@/types/license";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Key, Download } from "lucide-react";
+import { RefreshCw, Key } from "lucide-react";
 import { IikoLicenseFilters } from "@/components/iikoLicenseFilters";
 import { Pagination } from "@/components/Pagination";
 import { IikoLicenseCard } from "@/components/IikoLicenseCard";

@@ -1,13 +1,13 @@
 "use client";
 
-import {useState} from "react";
-import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
-import {IikoLicenses} from "@/components/IikoLicenses";
-import {Badge} from "@/components/ui/badge";
-import {Shield, RefreshCw} from "lucide-react";
-import {ArcaLicenses} from "@/components/ArcaLicenses";
-import {TindaUsers} from "@/components/TindaUsers";
-import {TsdUsers} from "@/components/TsdUsers";
+import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { IikoLicenses } from "@/components/IikoLicenses";
+import { Badge } from "@/components/ui/badge";
+import { Shield, RefreshCw } from "lucide-react";
+import { ArcaLicenses } from "@/components/ArcaLicenses";
+import { TindaUsers } from "@/components/TindaUsers";
+import { TsdUsers } from "@/components/TsdUsers";
 
 export default function LicensesPage() {
     const [loading, setLoading] = useState(false);
@@ -27,61 +27,63 @@ export default function LicensesPage() {
 
                 {loading && (
                     <Badge variant="secondary" className="flex items-center gap-2">
-                        <RefreshCw className="w-3 h-3 animate-spin"/>
+                        <RefreshCw className="w-3 h-3 animate-spin" />
                         Загрузка...
                     </Badge>
                 )}
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="bg-transparent border-b border-gray-200 w-full justify-start p-0 h-auto">
-                    <TabsTrigger
-                        value="iiko"
-                        className="flex items-center gap-2 px-6 py-3 data-[state=active]:border-b-2 data-[state=active]:border-purple-600 data-[state=active]:text-purple-600 rounded-none"
-                    >
-                        <Shield className="w-4 h-4"/>
-                        iiko
-                    </TabsTrigger>
+                <div className="overflow-x-auto">
+                    <TabsList className="bg-transparent border-b border-gray-200 w-full justify-start p-0 h-auto min-w-max">
+                        <TabsTrigger
+                            value="iiko"
+                            className="flex items-center gap-2 px-6 py-3 data-[state=active]:border-b-2 data-[state=active]:border-purple-600 data-[state=active]:text-purple-600 rounded-none"
+                        >
+                            <Shield className="w-4 h-4" />
+                            iiko
+                        </TabsTrigger>
 
-                    <TabsTrigger
-                        value="arca"
-                        className="flex items-center gap-2 px-6 py-3 rounded-none"
-                    >
-                        <Shield className="w-4 h-4"/>
-                        Arca
-                    </TabsTrigger>
+                        <TabsTrigger
+                            value="arca"
+                            className="flex items-center gap-2 px-6 py-3 rounded-none"
+                        >
+                            <Shield className="w-4 h-4" />
+                            Arca
+                        </TabsTrigger>
 
-                    <TabsTrigger
-                        value="tinda"
-                        className="flex items-center gap-2 px-6 py-3 rounded-none"
-                    >
-                        <Shield className="w-4 h-4"/>
-                        Tinda
-                    </TabsTrigger>
+                        <TabsTrigger
+                            value="tinda"
+                            className="flex items-center gap-2 px-6 py-3 rounded-none"
+                        >
+                            <Shield className="w-4 h-4" />
+                            Tinda
+                        </TabsTrigger>
 
-                    <TabsTrigger
-                        value="tsd"
-                        className="flex items-center gap-2 px-6 py-3 data-[state=active]:border-b-2 data-[state=active]:border-orange-600 data-[state=active]:text-orange-600 rounded-none"
-                    >
-                        <Shield className="w-4 h-4"/>
-                        TSD
-                    </TabsTrigger>
-                </TabsList>
+                        <TabsTrigger
+                            value="tsd"
+                            className="flex items-center gap-2 px-6 py-3 data-[state=active]:border-b-2 data-[state=active]:border-orange-600 data-[state=active]:text-orange-600 rounded-none"
+                        >
+                            <Shield className="w-4 h-4" />
+                            TSD
+                        </TabsTrigger>
+                    </TabsList>
+                </div>
 
                 <TabsContent value="iiko" className="space-y-4 mt-6">
-                    <IikoLicenses onLoadingChange={setLoading}/>
+                    <IikoLicenses onLoadingChange={setLoading} />
                 </TabsContent>
 
                 <TabsContent value="arca" className="space-y-4 mt-6">
-                    <ArcaLicenses/>
+                    <ArcaLicenses />
                 </TabsContent>
 
                 <TabsContent value="tinda" className="space-y-4 mt-6">
-                    <TindaUsers/>
+                    <TindaUsers />
                 </TabsContent>
 
                 <TabsContent value="tsd" className="space-y-4 mt-6">
-                    <TsdUsers/>
+                    <TsdUsers />
                 </TabsContent>
             </Tabs>
         </div>

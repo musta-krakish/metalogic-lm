@@ -6,12 +6,9 @@ import {
     Home,
     Key,
     FileText,
-    Settings,
     Menu,
     X,
     Shield,
-    User,
-    Bell
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -53,12 +50,6 @@ export default function MainLayout() {
             href: "/logs",
             icon: FileText,
             current: location.pathname === "/logs" || location.pathname.startsWith("/logs")
-        },
-        {
-            name: "Настройки",
-            href: "/settings",
-            icon: Settings,
-            current: location.pathname === "/settings" || location.pathname.startsWith("/settings")
         },
     ];
 
@@ -115,28 +106,7 @@ export default function MainLayout() {
                             })}
                         </nav>
 
-                        {/* Right Section */}
                         <div className="flex items-center gap-3">
-                            {/* Уведомления */}
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="relative text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl"
-                            >
-                                <Bell className="w-5 h-5" />
-                                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
-                            </Button>
-
-                            {/* Профиль */}
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl"
-                            >
-                                <User className="w-5 h-5" />
-                            </Button>
-
-                            {/* Кнопка выхода - десктоп */}
                             <Button
                                 onClick={handleLogout}
                                 variant="outline"
@@ -146,7 +116,6 @@ export default function MainLayout() {
                                 <span>Выйти</span>
                             </Button>
 
-                            {/* Мобильное меню */}
                             <Button
                                 variant="ghost"
                                 size="icon"
