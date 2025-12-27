@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
     Building, Calendar, Hash, MoreVertical,
-    Power, Trash2, Edit, CreditCard
+    Power, Trash2, Edit, CreditCard, Loader2
 } from "lucide-react";
 import { DateDisplay } from "@/components/ui/date-display";
 
@@ -19,9 +19,10 @@ interface Props {
     onEdit: (license: ArcaLicense) => void;
     onDelete: (mac: string) => void;
     onToggleActive: (mac: string) => void;
+    isLoading?: boolean;
 }
 
-export function ArcaLicenseCard({ license, onEdit, onDelete, onToggleActive }: Props) {
+export function ArcaLicenseCard({ license, onEdit, onDelete, onToggleActive, isLoading = false }: Props) {
     const isActive = license.status === "True" || license.status === "active";
     const licenseKey = license.licences_key || license.license_key || "No Key";
     const licenseDate = license.licences_date || license.license_date;
@@ -75,7 +76,7 @@ export function ArcaLicenseCard({ license, onEdit, onDelete, onToggleActive }: P
                             <Calendar className="w-4 h-4 text-red-400" />
                             <div className="flex flex-col">
                                 <span className="text-xs text-gray-400">Истекает</span>
-                                <DateDisplay date={license.expire_date} />
+                                <DateDisplay date={license.expire_date} checkExpiry={true} />
                             </div>
                         </div>
                     </div>
@@ -89,8 +90,12 @@ export function ArcaLicenseCard({ license, onEdit, onDelete, onToggleActive }: P
                 {/* Actions */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical className="w-4 h-4" />
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={isLoading}>
+                            {isLoading ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                            ) : (
+                                <MoreVertical className="w-4 h-4" />
+                            )}
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">

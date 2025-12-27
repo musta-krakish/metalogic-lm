@@ -16,17 +16,20 @@ import {
     Power,
     Edit,
     User,
-    Shield
+    Shield,
+    Loader2
 } from "lucide-react";
 import { DateDisplay } from "@/components/ui/date-display";
+
 
 interface Props {
     user: TindaUser;
     onEdit: (user: TindaUser) => void;
     onToggleActive: (id: string) => void;
+    isLoading?: boolean;
 }
 
-export function TindaUserCard({ user, onEdit, onToggleActive }: Props) {
+export function TindaUserCard({ user, onEdit, onToggleActive, isLoading = false }: Props) {
     const isActive = user.isActive;
     const userId = user._Id || "";
 
@@ -83,7 +86,7 @@ export function TindaUserCard({ user, onEdit, onToggleActive }: Props) {
                             <Calendar className="w-4 h-4 text-red-400" />
                             <div className="flex flex-col">
                                 <span className="text-xs text-gray-400">Истекает</span>
-                                <DateDisplay date={user.expireDate} />
+                                <DateDisplay date={user.expireDate} checkExpiry={true} />
                             </div>
                         </div>
                     </div>
@@ -92,8 +95,12 @@ export function TindaUserCard({ user, onEdit, onToggleActive }: Props) {
                 {/* Actions */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical className="w-4 h-4" />
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={isLoading}>
+                            {isLoading ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-pink-600" />
+                            ) : (
+                                <MoreVertical className="w-4 h-4" />
+                            )}
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">

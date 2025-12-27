@@ -4,16 +4,17 @@ interface DateDisplayProps {
     date: string | undefined | null;
     className?: string;
     showTime?: boolean;
+    checkExpiry?: boolean;
 }
 
-export function DateDisplay({ date, className, showTime = false }: DateDisplayProps) {
+export function DateDisplay({ date, className, showTime = false, checkExpiry = false }: DateDisplayProps) {
     if (!date) return <span className="text-gray-300">-</span>;
 
     const targetDate = new Date(date);
     if (isNaN(targetDate.getTime())) return <span className="text-red-300">Invalid Date</span>;
 
     const now = new Date();
-    const isExpired = targetDate < now;
+    const isExpired = checkExpiry && targetDate < now;
 
     const formatted = new Intl.DateTimeFormat('ru-RU', {
         day: 'numeric',

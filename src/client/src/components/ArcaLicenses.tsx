@@ -35,6 +35,7 @@ export function ArcaLicenses() {
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editingLicense, setEditingLicense] = useState<ArcaLicense | null>(null);
     const [formData, setFormData] = useState<Partial<ArcaCreateDto & { expire_date?: string, status?: string }>>({});
+    const [togglingId, setTogglingId] = useState<string | null>(null);
 
     const fetchLicenses = async () => {
         setLoading(true);
@@ -109,6 +110,7 @@ export function ArcaLicenses() {
     };
 
     const handleToggleActive = async (mac: string) => {
+        setTogglingId(mac);
         try {
             await ArcaService.toggleActive(mac);
             await fetchLicenses();
@@ -117,6 +119,8 @@ export function ArcaLicenses() {
         catch (error) {
             console.error(error);
             toast.error("Ошибка изменения статуса");
+        } finally {
+            setTogglingId(null);
         }
     };
 
@@ -228,6 +232,7 @@ export function ArcaLicenses() {
                             onEdit={openEdit}
                             onDelete={handleDeleteClick}
                             onToggleActive={handleToggleActive}
+                            isLoading={togglingId === license.mac_address}
                         />
                     ))
                 ) : (

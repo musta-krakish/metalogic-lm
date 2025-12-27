@@ -38,6 +38,7 @@ export function TsdUsers() {
     const [editForm, setEditForm] = useState<{ org?: string, bin?: string, count?: number, expireDate?: string }>({});
     const [newPassword, setNewPassword] = useState("");
     const [deleteUsername, setDeleteUsername] = useState<string | null>(null);
+    const [togglingId, setTogglingId] = useState<string | null>(null);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -158,6 +159,7 @@ export function TsdUsers() {
     };
 
     const handleToggleActive = async (username: string) => {
+        setTogglingId(username);
         try {
             await TsdService.toggleActive(username);
             await fetchUsers();
@@ -165,6 +167,8 @@ export function TsdUsers() {
         } catch (error) {
             console.error(error);
             toast.error("Ошибка смены статуса");
+        } finally {
+            setTogglingId(null);
         }
     };
 
@@ -255,6 +259,7 @@ export function TsdUsers() {
                             onPassword={openPass}
                             onDelete={handleDeleteClick}
                             onToggleActive={handleToggleActive}
+                            isLoading={togglingId === user.username}
                         />
                     ))
                 ) : (

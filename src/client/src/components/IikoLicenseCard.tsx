@@ -79,7 +79,7 @@ export function IikoLicenseCard({ license, showOrganization = true }: IikoLicens
                             <Calendar className="w-4 h-4 text-gray-400" />
                             <div>
                                 <div className="text-xs text-gray-500">Истекает</div>
-                                <DateDisplay date={license.license?.licenseExpirationDate} />
+                                <DateDisplay date={license.license?.licenseExpirationDate} checkExpiry={true} />
                             </div>
                         </div>
 

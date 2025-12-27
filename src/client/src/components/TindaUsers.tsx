@@ -23,6 +23,7 @@ export function TindaUsers() {
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<TindaUser | null>(null);
     const [formData, setFormData] = useState<Partial<TindaCreateDto>>({});
+    const [togglingId, setTogglingId] = useState<string | null>(null);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -114,6 +115,7 @@ export function TindaUsers() {
     };
 
     const handleToggleActive = async (id: string) => {
+        setTogglingId(id);
         try {
             await TindaService.toggleActive(id);
             await fetchUsers();
@@ -121,6 +123,8 @@ export function TindaUsers() {
         } catch (error) {
             console.error(error);
             toast.error("Не удалось изменить статус");
+        } finally {
+            setTogglingId(null);
         }
     };
 
@@ -202,6 +206,7 @@ export function TindaUsers() {
                             user={user}
                             onEdit={openEdit}
                             onToggleActive={handleToggleActive}
+                            isLoading={togglingId === user._Id}
                         />
                     ))
                 ) : (

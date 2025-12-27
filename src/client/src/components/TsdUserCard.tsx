@@ -20,7 +20,8 @@ import {
     Shield,
     Trash2,
     KeyRound,
-    Monitor
+    Monitor,
+    Loader2
 } from "lucide-react";
 import { DateDisplay } from "@/components/ui/date-display";
 
@@ -30,9 +31,10 @@ interface Props {
     onPassword: (user: TsdUser) => void;
     onDelete: (username: string) => void;
     onToggleActive: (username: string) => void;
+    isLoading?: boolean;
 }
 
-export function TsdUserCard({ user, onEdit, onPassword, onDelete, onToggleActive }: Props) {
+export function TsdUserCard({ user, onEdit, onPassword, onDelete, onToggleActive, isLoading = false }: Props) {
     const isActive = user.isActive;
 
     return (
@@ -88,17 +90,21 @@ export function TsdUserCard({ user, onEdit, onPassword, onDelete, onToggleActive
                             <Calendar className="w-4 h-4 text-red-400" />
                             <div className="flex flex-col">
                                 <span className="text-xs text-gray-400">Истекает</span>
-                                <DateDisplay date={user.expireDate} />
+                                <DateDisplay date={user.expireDate} checkExpiry={true} />
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Actions */}
-                <DropdownMenu>
+               <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical className="w-4 h-4" />
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={isLoading}>
+                             {isLoading ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-orange-600" />
+                            ) : (
+                                <MoreVertical className="w-4 h-4" />
+                            )}
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
