@@ -10,7 +10,8 @@ from app.tinda.models.tinda_models import (
     TindaSetOrgDto,
     TindaSetBinDto,
     TindaSetExpireDateDto,
-    TindaSetActiveDto
+    TindaSetActiveDto,
+    TindaUpdateUserDto
 )
 
 router = APIRouter(
@@ -92,3 +93,12 @@ def set_bin(payload: TindaSetBinDto):
 @router.patch("/users/expire-date")
 def set_expire_date(payload: TindaSetExpireDateDto):
     return TindaController.set_expire_date(payload.user_id, payload.expire_date)
+
+@router.patch("/users/update")
+def update_user(payload: TindaUpdateUserDto):
+    return TindaController.update_user(
+        user_id=payload.user_id,
+        org=payload.org,
+        bin_code=payload.bin,
+        expire_date=payload.expire_date
+    )

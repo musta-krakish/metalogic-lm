@@ -12,7 +12,8 @@ from app.tsd.models.tsd_models import (
     TsdSetOrgDto,
     TsdSetExpireDateDto,
     TsdActiveDto,
-    TsdBaseUserDto
+    TsdBaseUserDto,
+    TsdUpdateUserDto
 )
 
 router = APIRouter(
@@ -105,3 +106,13 @@ def get_user_detail(username: str):
 @router.post("/users/delete")
 def delete_user(payload: TsdBaseUserDto):
     return TsdController.delete_user(payload.username)
+
+@router.patch("/users/update")
+def update_user(payload: TsdUpdateUserDto):
+    return TsdController.update_user(
+        username=payload.username,
+        org=payload.org,
+        bin_code=payload.bin,
+        count=payload.count,
+        expire_date=payload.expire_date
+    )

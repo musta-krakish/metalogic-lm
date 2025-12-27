@@ -90,22 +90,15 @@ export function TindaUsers() {
 
     const handleUpdate = async () => {
         if (!editingUser || !editingUser._Id || isSubmitting) return;
-        const userId = editingUser._Id;
 
         setIsSubmitting(true);
         try {
-            const promises = [];
-            if (formData.org !== undefined && formData.org !== editingUser.org) {
-                promises.push(TindaService.setOrg(userId, formData.org));
-            }
-            if (formData.bin !== undefined && formData.bin !== editingUser.bin) {
-                promises.push(TindaService.setBin(userId, formData.bin));
-            }
-            if (formData.expireDate) {
-                promises.push(TindaService.setExpireDate(userId, formData.expireDate));
-            }
-
-            if (promises.length > 0) await Promise.all(promises);
+            await TindaService.updateUser({
+                user_id: editingUser._Id,
+                org: formData.org,
+                bin: formData.bin,
+                expire_date: formData.expireDate
+            });
 
             setIsEditOpen(false);
             setEditingUser(null);

@@ -97,25 +97,16 @@ export function TsdUsers() {
 
     const handleUpdate = async () => {
         if (!editingUser || isSubmitting) return;
-        const username = editingUser.username;
-
         setIsSubmitting(true);
         try {
-            const promises = [];
-            if (editForm.org !== undefined && editForm.org !== editingUser.org) {
-                promises.push(TsdService.setOrg(username, editForm.org));
-            }
-            if (editForm.bin !== undefined && editForm.bin !== editingUser.bin) {
-                promises.push(TsdService.setBin(username, editForm.bin));
-            }
-            if (editForm.count !== undefined && editForm.count !== editingUser.availableDeviceCount) {
-                promises.push(TsdService.setDeviceCount(username, editForm.count));
-            }
-            if (editForm.expireDate) {
-                promises.push(TsdService.setExpireDate(username, editForm.expireDate));
-            }
+            await TsdService.updateUser({
+                username: editingUser.username,
+                org: editForm.org,
+                bin: editForm.bin,
+                count: editForm.count,
+                expire_date: editForm.expireDate
+            });
 
-            await Promise.all(promises);
             setIsEditOpen(false);
             setEditingUser(null);
             await fetchUsers();

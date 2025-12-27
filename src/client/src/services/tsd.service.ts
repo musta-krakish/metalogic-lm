@@ -1,5 +1,5 @@
 import api from "@/lib/axios";
-import type { TsdResponse, TsdFilters, TsdCreateDto } from "@/types/tsd";
+import type { TsdResponse, TsdFilters, TsdCreateDto, TsdUpdateDto } from "@/types/tsd";
 
 export const TsdService = {
     async getUsers(page = 1, limit = 10, filters: TsdFilters = {}): Promise<TsdResponse> {
@@ -42,19 +42,7 @@ export const TsdService = {
         return api.patch('/tsd/users/password', { username, password });
     },
 
-    async setDeviceCount(username: string, count: number) {
-        return api.patch('/tsd/users/device-count', { username, count });
+   async updateUser(payload: TsdUpdateDto) {
+        return api.patch('/tsd/users/update', payload);
     },
-
-    async setOrg(username: string, org: string) {
-        return api.patch('/tsd/users/org', { username, org });
-    },
-
-    async setBin(username: string, bin: string) {
-        return api.patch('/tsd/users/bin', { username, bin });
-    },
-
-    async setExpireDate(username: string, expire_date: string) {
-        return api.patch('/tsd/users/expire-date', { username, expire_date });
-    }
 };

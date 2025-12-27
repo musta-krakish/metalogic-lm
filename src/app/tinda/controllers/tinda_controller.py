@@ -318,3 +318,30 @@ class TindaController:
         except Exception as e:
             logger.error(f"Tinda set_expire_date failed: {e}")
             raise HTTPException(status_code=500, detail=str(e))
+
+    @classmethod
+    def update_user(cls, user_id: str, org: str = None, bin_code: str = None, expire_date: str = None):
+        try:
+
+            if org is not None:
+                url = f"{cls.BASE_URL}Users/SetOrg"
+                resp = requests.patch(url, params={"id": user_id, "text": org}, auth=cls._auth())
+                resp.raise_for_status()
+
+
+            if bin_code is not None:
+                url = f"{cls.BASE_URL}Users/SetBin"
+                resp = requests.patch(url, params={"id": user_id, "text": bin_code}, auth=cls._auth())
+                resp.raise_for_status()
+
+            if expire_date is not None:
+                url = f"{cls.BASE_URL}Users/SetExpireDate"
+                resp = requests.patch(url, params={"id": user_id, "date": expire_date}, auth=cls._auth())
+                resp.raise_for_status()
+
+            cls.sync_users()
+            return {"status": "ok", "message": "User updated"}
+
+        except Exception as e:
+            logger.error(f"Error updating Tinda user {user_id}: {e}")
+            raise HTTPException(status_code=500, detail=str(e))

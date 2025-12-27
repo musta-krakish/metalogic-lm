@@ -341,3 +341,31 @@ class TsdController:
         except Exception as e:
             logger.error(f"TSD active_user failed: {e}")
             raise HTTPException(status_code=500, detail=str(e))
+
+    @classmethod
+    def update_user(cls, username: str, org: str = None, bin_code: str = None, count: int = None,
+                    expire_date: str = None):
+        headers = cls._headers()
+        try:
+            if org is not None:
+                requests.patch(f"{cls.BASE_URL}Auth/SetOrg", params={"userName": username, "text": org},
+                               headers=headers).raise_for_status()
+
+            if bin_code is not None:
+                requests.patch(f"{cls.BASE_URL}Auth/SetBin", params={"userName": username, "text": bin_code},
+                               headers=headers).raise_for_status()
+
+            if count is not None:
+                requests.patch(f"{cls.BASE_URL}Auth/SetDeviceCount", params={"userName": username, "count": count},
+                               headers=headers).raise_for_status()
+
+            if expire_date is not None:
+                requests.patch(f"{cls.BASE_URL}Auth/SetExpireDate", params={"userName": username, "date": expire_date},
+                               headers=headers).raise_for_status()
+
+            cls.sync_users()
+            return {"status": "ok"}
+
+        except Exception as e:
+            logger.error(f"Error updating TSD user {username}: {e}")
+            raise HTTPException(status_code=500, detail=str(e))

@@ -31,3 +31,9 @@ class TindaSetExpireDateDto(BaseModel):
 
 class TindaSetActiveDto(BaseModel):
     user_id: str
+
+class TindaUpdateUserDto(BaseModel):
+    user_id: str
+    org: Optional[str] = None
+    bin: Optional[str] = None
+    expire_date: Optional[str] = None

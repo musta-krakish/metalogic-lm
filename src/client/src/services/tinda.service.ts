@@ -30,16 +30,8 @@ export const TindaService = {
         return api.post('/tinda/users/create', payload);
     },
 
-    async setOrg(user_id: string, org: string) {
-        return api.patch('/tinda/users/org', { user_id, org });
-    },
-
-    async setBin(user_id: string, bin: string) {
-        return api.patch('/tinda/users/bin', { user_id, bin });
-    },
-
-    async setExpireDate(user_id: string, expire_date: string) {
-        return api.patch('/tinda/users/expire-date', { user_id, expire_date });
+    async updateUser(payload: { user_id: string, org?: string, bin?: string, expire_date?: string }) {
+        return api.patch('/tinda/users/update', payload);
     },
 
     async toggleActive(user_id: string) {

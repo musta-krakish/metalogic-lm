@@ -41,3 +41,11 @@ export interface TsdUpdateDto {
     count?: number;
     expire_date?: string;
 }
+
+export interface TsdUpdateDto {
+    username: string;
+    org?: string;
+    bin?: string;
+    count?: number;
+    expire_date?: string;
+}

@@ -36,3 +36,10 @@ class TsdSetExpireDateDto(TsdBaseUserDto):
 
 class TsdActiveDto(TsdBaseUserDto):
     pass
+
+class TsdUpdateUserDto(BaseModel):
+    username: str
+    org: Optional[str] = None
+    bin: Optional[str] = None
+    count: Optional[int] = None
+    expire_date: Optional[str] = None
