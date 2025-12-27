@@ -6,6 +6,7 @@ import Logs from "@/pages/Logs";
 import Licenses from "@/pages/Licenses";
 import MainLayout from "@/layouts/MainLayout";
 import type { JSX } from "react";
+import { Toaster } from "@/components/ui/sonner"
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
   return AuthService.isAuthenticated() ? children : <Navigate to="/login" />;
@@ -28,6 +29,7 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="logs" element={<Logs />} />
           <Route path="licenses" element={<Licenses />} />
+            <Toaster richColors position="top-right" />
         </Route>
       </Routes>
     </BrowserRouter>

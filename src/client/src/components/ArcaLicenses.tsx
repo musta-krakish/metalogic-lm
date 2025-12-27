@@ -1,18 +1,19 @@
 import { useState, useEffect } from "react";
 import { ArcaService } from "@/services/arca.service";
-import type { ArcaLicense, ArcaFilters, ArcaCreateDto, ArcaEditDto } from "@/types/arca";
+import type { ArcaLicense, ArcaFilters, ArcaCreateDto } from "@/types/arca";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { RefreshCw, Download, Plus, Search } from "lucide-react";
+import { RefreshCw, Download, Plus, Search, Loader2 } from "lucide-react";
 import { ArcaLicenseCard } from "./ArcaLicenseCard";
 import { Pagination } from "./Pagination";
 
 export function ArcaLicenses() {
     const [data, setData] = useState<{ items: ArcaLicense[], total: number }>({ items: [], total: 0 });
     const [loading, setLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false); // Состояние отправки формы
     const [page, setPage] = useState(1);
     const [filters, setFilters] = useState<ArcaFilters>({ status: 'all' });
 
@@ -20,7 +21,7 @@ export function ArcaLicenses() {
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editingLicense, setEditingLicense] = useState<ArcaLicense | null>(null);
 
-    const [formData, setFormData] = useState<Partial<ArcaCreateDto & ArcaEditDto>>({});
+    const [formData, setFormData] = useState<Partial<ArcaCreateDto & { expire_date?: string, status?: string }>>({});
 
     const fetchLicenses = async () => {
         setLoading(true);
@@ -37,6 +38,7 @@ export function ArcaLicenses() {
     useEffect(() => { fetchLicenses(); }, [page, filters]);
 
     const handleSync = async () => {
+        if (loading) return;
         setLoading(true);
         try { await ArcaService.syncLicenses(); await fetchLicenses(); }
         catch (error) { console.error(error); }
@@ -44,14 +46,18 @@ export function ArcaLicenses() {
     };
 
     const handleCreate = async () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         try {
             await ArcaService.createLicense(formData as ArcaCreateDto);
             setIsCreateOpen(false);
             setFormData({});
-            fetchLicenses();
+            await fetchLicenses();
         } catch (error) {
             console.error(error);
             alert("Ошибка создания лицензии");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -77,11 +83,10 @@ export function ArcaLicenses() {
         } catch (error) { console.error(error); }
     };
 
-
-const handleUpdate = async () => {
-        if (!editingLicense) return;
+    const handleUpdate = async () => {
+        if (!editingLicense || isSubmitting) return;
+        setIsSubmitting(true);
         try {
-
             await ArcaService.updateLicense({
                 mac_address: editingLicense.mac_address,
                 license_key: formData.license_key,
@@ -95,10 +100,12 @@ const handleUpdate = async () => {
             setIsEditOpen(false);
             setEditingLicense(null);
             setFormData({});
-            fetchLicenses();
+            await fetchLicenses();
         } catch (error) {
             console.error(error);
             alert("Ошибка обновления");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -121,7 +128,6 @@ const handleUpdate = async () => {
 
     return (
         <div className="space-y-6">
-            {/* Toolbar (Без изменений) */}
             <div className="flex flex-col sm:flex-row justify-between gap-4">
                 <div className="flex flex-1 gap-4">
                     <div className="relative flex-1 max-w-sm">
@@ -161,7 +167,6 @@ const handleUpdate = async () => {
                 </div>
             </div>
 
-            {/* List (Без изменений) */}
             <div className="space-y-4">
                 {data.items.map((license) => (
                     <ArcaLicenseCard
@@ -181,8 +186,8 @@ const handleUpdate = async () => {
                 loading={loading}
             />
 
-            {/* Create Dialog (Без изменений) */}
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            {/* Create Dialog */}
+            <Dialog open={isCreateOpen} onOpenChange={(val) => !isSubmitting && setIsCreateOpen(val)}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Новая лицензия Arca</DialogTitle>
@@ -191,34 +196,41 @@ const handleUpdate = async () => {
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
                             <Label>MAC Address</Label>
-                            <Input onChange={(e) => setFormData({...formData, mac_address: e.target.value})} placeholder="AA:BB:CC:DD:EE:FF" />
+                            <Input disabled={isSubmitting} onChange={(e) => setFormData({...formData, mac_address: e.target.value})} placeholder="AA:BB:CC:DD:EE:FF" />
                         </div>
                         <div className="grid gap-2">
                             <Label>License Key</Label>
-                            <Input onChange={(e) => setFormData({...formData, license_key: e.target.value})} placeholder="UUID key" />
+                            <Input disabled={isSubmitting} onChange={(e) => setFormData({...formData, license_key: e.target.value})} placeholder="UUID key" />
                         </div>
                         <div className="grid gap-2">
                             <Label>License Date</Label>
-                            <Input type="date" onChange={(e) => setFormData({...formData, license_date: e.target.value})} />
+                            <Input type="date" disabled={isSubmitting} onChange={(e) => setFormData({...formData, license_date: e.target.value})} />
                         </div>
                         <div className="grid gap-2">
                             <Label>Organization (Optional)</Label>
-                            <Input onChange={(e) => setFormData({...formData, org: e.target.value})} />
+                            <Input disabled={isSubmitting} onChange={(e) => setFormData({...formData, org: e.target.value})} />
                         </div>
                         <div className="grid gap-2">
                             <Label>BIN (Optional)</Label>
-                            <Input onChange={(e) => setFormData({...formData, bin: e.target.value})} />
+                            <Input disabled={isSubmitting} onChange={(e) => setFormData({...formData, bin: e.target.value})} />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Отмена</Button>
-                        <Button onClick={handleCreate}>Создать</Button>
+                        <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isSubmitting}>Отмена</Button>
+                        <Button onClick={handleCreate} disabled={isSubmitting}>
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Создаем...
+                                </>
+                            ) : "Создать"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
             {/* Edit Dialog */}
-            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+            <Dialog open={isEditOpen} onOpenChange={(val) => !isSubmitting && setIsEditOpen(val)}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Редактирование лицензии</DialogTitle>
@@ -227,26 +239,27 @@ const handleUpdate = async () => {
                     <div className="grid gap-4 py-4">
                          <div className="grid gap-2">
                             <Label>License Key</Label>
-                            <Input defaultValue={formData.license_key} onChange={(e) => setFormData({...formData, license_key: e.target.value})} />
+                            <Input disabled={isSubmitting} defaultValue={formData.license_key} onChange={(e) => setFormData({...formData, license_key: e.target.value})} />
                         </div>
                         <div className="grid gap-2">
                             <Label>Organization</Label>
-                            <Input defaultValue={formData.org} onChange={(e) => setFormData({...formData, org: e.target.value})} />
+                            <Input disabled={isSubmitting} defaultValue={formData.org} onChange={(e) => setFormData({...formData, org: e.target.value})} />
                         </div>
                         <div className="grid gap-2">
                             <Label>BIN</Label>
-                            <Input defaultValue={formData.bin} onChange={(e) => setFormData({...formData, bin: e.target.value})} />
+                            <Input disabled={isSubmitting} defaultValue={formData.bin} onChange={(e) => setFormData({...formData, bin: e.target.value})} />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
                                 <Label>License Date</Label>
-                                <Input type="date" defaultValue={formData.license_date} onChange={(e) => setFormData({...formData, license_date: e.target.value})} />
+                                <Input type="date" disabled={isSubmitting} defaultValue={formData.license_date} onChange={(e) => setFormData({...formData, license_date: e.target.value})} />
                             </div>
                             <div className="grid gap-2">
                                 <Label className="text-red-600">Expire Date</Label>
                                 <Input
                                     type="date"
+                                    disabled={isSubmitting}
                                     defaultValue={formData.expire_date}
                                     onChange={(e) => setFormData({...formData, expire_date: e.target.value})}
                                 />
@@ -254,8 +267,15 @@ const handleUpdate = async () => {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsEditOpen(false)}>Отмена</Button>
-                        <Button onClick={handleUpdate}>Сохранить</Button>
+                        <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isSubmitting}>Отмена</Button>
+                        <Button onClick={handleUpdate} disabled={isSubmitting}>
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Сохраняем...
+                                </>
+                            ) : "Сохранить"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

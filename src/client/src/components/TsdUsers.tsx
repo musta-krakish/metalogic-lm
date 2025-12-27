@@ -6,23 +6,21 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { RefreshCw, Download, Plus, Search } from "lucide-react";
+import { RefreshCw, Download, Plus, Search, Loader2 } from "lucide-react";
 import { TsdUserCard } from "./TsdUserCard";
 import { Pagination } from "./Pagination";
 
 export function TsdUsers() {
-    // State
     const [data, setData] = useState<{ items: TsdUser[], total: number }>({ items: [], total: 0 });
     const [loading, setLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [page, setPage] = useState(1);
     const [filters, setFilters] = useState<TsdFilters>({ status: 'all' });
 
-    // Modals
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isPassOpen, setIsPassOpen] = useState(false);
 
-    // Form Data
     const [editingUser, setEditingUser] = useState<TsdUser | null>(null);
     const [createData, setCreateData] = useState<Partial<TsdCreateDto>>({ role: "User" });
     const [editForm, setEditForm] = useState<{ org?: string, bin?: string, count?: number, expireDate?: string }>({});
@@ -45,6 +43,7 @@ export function TsdUsers() {
     }, [page, filters]);
 
     const handleSync = async () => {
+        if (loading) return;
         setLoading(true);
         try {
             await TsdService.syncUsers();
@@ -56,28 +55,31 @@ export function TsdUsers() {
         }
     };
 
-    // --- Actions ---
-
     const handleCreate = async () => {
         if (!createData.username || !createData.password) {
             alert("Username and Password are required");
             return;
         }
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         try {
             await TsdService.createUser(createData as TsdCreateDto);
             setIsCreateOpen(false);
             setCreateData({ role: "User" });
-            fetchUsers();
+            await fetchUsers();
         } catch (error) {
             console.error(error);
             alert("Error creating user");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleUpdate = async () => {
-        if (!editingUser) return;
+        if (!editingUser || isSubmitting) return;
         const username = editingUser.username;
 
+        setIsSubmitting(true);
         try {
             const promises = [];
             if (editForm.org !== undefined && editForm.org !== editingUser.org) {
@@ -96,15 +98,18 @@ export function TsdUsers() {
             await Promise.all(promises);
             setIsEditOpen(false);
             setEditingUser(null);
-            fetchUsers();
+            await fetchUsers();
         } catch (error) {
             console.error(error);
             alert("Failed to update user");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleChangePassword = async () => {
-        if (!editingUser || !newPassword) return;
+        if (!editingUser || !newPassword || isSubmitting) return;
+        setIsSubmitting(true);
         try {
             await TsdService.setPassword(editingUser.username, newPassword);
             setIsPassOpen(false);
@@ -114,6 +119,8 @@ export function TsdUsers() {
         } catch (error) {
             console.error(error);
             alert("Failed to update password");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -150,8 +157,6 @@ export function TsdUsers() {
         }
     };
 
-    // --- Helpers ---
-
     const openEdit = (user: TsdUser) => {
         setEditingUser(user);
         setEditForm({
@@ -171,7 +176,6 @@ export function TsdUsers() {
 
     return (
         <div className="space-y-6">
-            {/* Toolbar */}
             <div className="flex flex-col sm:flex-row justify-between gap-4">
                 <div className="flex flex-1 gap-4">
                     <div className="relative flex-1 max-w-sm">
@@ -211,7 +215,6 @@ export function TsdUsers() {
                 </div>
             </div>
 
-            {/* List */}
             <div className="space-y-4">
                 {data.items.map((user) => (
                     <TsdUserCard
@@ -236,7 +239,7 @@ export function TsdUsers() {
             />
 
             {/* Create Dialog */}
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <Dialog open={isCreateOpen} onOpenChange={(val) => !isSubmitting && setIsCreateOpen(val)}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Новый пользователь TSD</DialogTitle>
@@ -245,15 +248,15 @@ export function TsdUsers() {
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
                             <Label>Username <span className="text-red-500">*</span></Label>
-                            <Input onChange={(e) => setCreateData({...createData, username: e.target.value})} />
+                            <Input disabled={isSubmitting} onChange={(e) => setCreateData({...createData, username: e.target.value})} />
                         </div>
                         <div className="grid gap-2">
                             <Label>Password <span className="text-red-500">*</span></Label>
-                            <Input type="password" onChange={(e) => setCreateData({...createData, password: e.target.value})} />
+                            <Input type="password" disabled={isSubmitting} onChange={(e) => setCreateData({...createData, password: e.target.value})} />
                         </div>
                         <div className="grid gap-2">
                             <Label>Role</Label>
-                            <Select onValueChange={(v) => setCreateData({...createData, role: v})} defaultValue="User">
+                            <Select disabled={isSubmitting} onValueChange={(v) => setCreateData({...createData, role: v})} defaultValue="User">
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select role" />
                                 </SelectTrigger>
@@ -265,18 +268,25 @@ export function TsdUsers() {
                         </div>
                         <div className="grid gap-2">
                             <Label>Organization (Optional)</Label>
-                            <Input onChange={(e) => setCreateData({...createData, org: e.target.value})} />
+                            <Input disabled={isSubmitting} onChange={(e) => setCreateData({...createData, org: e.target.value})} />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Отмена</Button>
-                        <Button onClick={handleCreate}>Создать</Button>
+                        <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isSubmitting}>Отмена</Button>
+                        <Button onClick={handleCreate} disabled={isSubmitting}>
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Создаем...
+                                </>
+                            ) : "Создать"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
             {/* Edit Dialog */}
-            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+            <Dialog open={isEditOpen} onOpenChange={(val) => !isSubmitting && setIsEditOpen(val)}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Редактирование пользователя</DialogTitle>
@@ -285,32 +295,39 @@ export function TsdUsers() {
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
                             <Label>Organization</Label>
-                            <Input defaultValue={editForm.org} onChange={(e) => setEditForm({...editForm, org: e.target.value})} />
+                            <Input disabled={isSubmitting} defaultValue={editForm.org} onChange={(e) => setEditForm({...editForm, org: e.target.value})} />
                         </div>
                         <div className="grid gap-2">
                             <Label>BIN</Label>
-                            <Input defaultValue={editForm.bin} onChange={(e) => setEditForm({...editForm, bin: e.target.value})} />
+                            <Input disabled={isSubmitting} defaultValue={editForm.bin} onChange={(e) => setEditForm({...editForm, bin: e.target.value})} />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
                                 <Label>Device Count</Label>
-                                <Input type="number" defaultValue={editForm.count} onChange={(e) => setEditForm({...editForm, count: parseInt(e.target.value)})} />
+                                <Input type="number" disabled={isSubmitting} defaultValue={editForm.count} onChange={(e) => setEditForm({...editForm, count: parseInt(e.target.value)})} />
                             </div>
                             <div className="grid gap-2">
                                 <Label>Expire Date</Label>
-                                <Input type="date" defaultValue={editForm.expireDate} onChange={(e) => setEditForm({...editForm, expireDate: e.target.value})} />
+                                <Input type="date" disabled={isSubmitting} defaultValue={editForm.expireDate} onChange={(e) => setEditForm({...editForm, expireDate: e.target.value})} />
                             </div>
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsEditOpen(false)}>Отмена</Button>
-                        <Button onClick={handleUpdate}>Сохранить</Button>
+                        <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isSubmitting}>Отмена</Button>
+                        <Button onClick={handleUpdate} disabled={isSubmitting}>
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Сохранить
+                                </>
+                            ) : "Сохранить"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
             {/* Password Dialog */}
-            <Dialog open={isPassOpen} onOpenChange={setIsPassOpen}>
+            <Dialog open={isPassOpen} onOpenChange={(val) => !isSubmitting && setIsPassOpen(val)}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Смена пароля</DialogTitle>
@@ -319,12 +336,19 @@ export function TsdUsers() {
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
                             <Label>Новый пароль</Label>
-                            <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+                            <Input type="password" disabled={isSubmitting} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsPassOpen(false)}>Отмена</Button>
-                        <Button onClick={handleChangePassword}>Изменить</Button>
+                        <Button variant="outline" onClick={() => setIsPassOpen(false)} disabled={isSubmitting}>Отмена</Button>
+                        <Button onClick={handleChangePassword} disabled={isSubmitting}>
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Изменить
+                                </>
+                            ) : "Изменить"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

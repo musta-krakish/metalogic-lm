@@ -6,18 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { RefreshCw, Download, Plus, Search } from "lucide-react";
+import { RefreshCw, Download, Plus, Search, Loader2 } from "lucide-react";
 import { TindaUserCard } from "./TindaUserCard";
 import { Pagination } from "./Pagination";
 
 export function TindaUsers() {
-    // State
     const [data, setData] = useState<{ items: TindaUser[], total: number }>({ items: [], total: 0 });
     const [loading, setLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false); // Состояние отправки
     const [page, setPage] = useState(1);
     const [filters, setFilters] = useState<TindaFilters>({ status: 'all' });
 
-    // Modals
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<TindaUser | null>(null);
@@ -40,6 +39,7 @@ export function TindaUsers() {
     }, [page, filters]);
 
     const handleSync = async () => {
+        if (loading) return;
         setLoading(true);
         try {
             await TindaService.syncUsers();
@@ -57,6 +57,8 @@ export function TindaUsers() {
             return;
         }
 
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         try {
             await TindaService.createUser({
                 username: formData.username,
@@ -68,21 +70,23 @@ export function TindaUsers() {
             });
             setIsCreateOpen(false);
             setFormData({});
-            fetchUsers();
+            await fetchUsers();
         } catch (error) {
             console.error(error);
             alert("Ошибка создания пользователя");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleUpdate = async () => {
-        if (!editingUser || !editingUser._Id) return;
+        if (!editingUser || !editingUser._Id || isSubmitting) return;
         const userId = editingUser._Id;
 
+        setIsSubmitting(true);
         try {
             const promises = [];
 
-            // Проверяем каждое поле: если оно есть в форме, отправляем запрос
             if (formData.org !== undefined && formData.org !== editingUser.org) {
                 promises.push(TindaService.setOrg(userId, formData.org));
             }
@@ -90,7 +94,6 @@ export function TindaUsers() {
                 promises.push(TindaService.setBin(userId, formData.bin));
             }
             if (formData.expireDate) {
-                // Tinda ожидает ISO строку или похожую дату
                 promises.push(TindaService.setExpireDate(userId, formData.expireDate));
             }
 
@@ -101,10 +104,12 @@ export function TindaUsers() {
             setIsEditOpen(false);
             setEditingUser(null);
             setFormData({});
-            fetchUsers();
+            await fetchUsers();
         } catch (error) {
             console.error(error);
             alert("Ошибка обновления пользователя");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -122,7 +127,6 @@ export function TindaUsers() {
         setFormData({
             org: user.org,
             bin: user.bin,
-            // Форматируем дату для input type="date" (YYYY-MM-DD)
             expireDate: user.expireDate ? user.expireDate.split('T')[0] : ''
         });
         setIsEditOpen(true);
@@ -143,7 +147,6 @@ export function TindaUsers() {
 
     return (
         <div className="space-y-6">
-            {/* Toolbar */}
             <div className="flex flex-col sm:flex-row justify-between gap-4">
                 <div className="flex flex-1 gap-4">
                     <div className="relative flex-1 max-w-sm">
@@ -183,7 +186,6 @@ export function TindaUsers() {
                 </div>
             </div>
 
-            {/* List */}
             <div className="space-y-4">
                 {data.items.map((user) => (
                     <TindaUserCard
@@ -206,7 +208,7 @@ export function TindaUsers() {
             />
 
             {/* Create Dialog */}
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <Dialog open={isCreateOpen} onOpenChange={(val) => !isSubmitting && setIsCreateOpen(val)}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Новый пользователь Tinda</DialogTitle>
@@ -215,16 +217,16 @@ export function TindaUsers() {
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
                             <Label>Username (Login) <span className="text-red-500">*</span></Label>
-                            <Input onChange={(e) => setFormData({...formData, username: e.target.value})} placeholder="login" />
+                            <Input disabled={isSubmitting} onChange={(e) => setFormData({...formData, username: e.target.value})} placeholder="login" />
                         </div>
                         <div className="grid gap-2">
                             <Label>Password <span className="text-red-500">*</span></Label>
-                            <Input type="password" onChange={(e) => setFormData({...formData, password: e.target.value})} placeholder="******" />
+                            <Input type="password" disabled={isSubmitting} onChange={(e) => setFormData({...formData, password: e.target.value})} placeholder="******" />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
                                 <Label>Expire Date <span className="text-red-500">*</span></Label>
-                                <Input type="date" onChange={(e) => setFormData({...formData, expireDate: e.target.value})} />
+                                <Input type="date" disabled={isSubmitting} onChange={(e) => setFormData({...formData, expireDate: e.target.value})} />
                             </div>
                             <div className="grid gap-2">
                                 <Label>Role</Label>
@@ -233,22 +235,29 @@ export function TindaUsers() {
                         </div>
                         <div className="grid gap-2">
                             <Label>Organization</Label>
-                            <Input onChange={(e) => setFormData({...formData, org: e.target.value})} />
+                            <Input disabled={isSubmitting} onChange={(e) => setFormData({...formData, org: e.target.value})} />
                         </div>
                         <div className="grid gap-2">
                             <Label>BIN</Label>
-                            <Input onChange={(e) => setFormData({...formData, bin: e.target.value})} />
+                            <Input disabled={isSubmitting} onChange={(e) => setFormData({...formData, bin: e.target.value})} />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Отмена</Button>
-                        <Button onClick={handleCreate}>Создать</Button>
+                        <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isSubmitting}>Отмена</Button>
+                        <Button onClick={handleCreate} disabled={isSubmitting}>
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Создаем...
+                                </>
+                            ) : "Создать"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
             {/* Edit Dialog */}
-            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+            <Dialog open={isEditOpen} onOpenChange={(val) => !isSubmitting && setIsEditOpen(val)}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Редактирование пользователя</DialogTitle>
@@ -257,20 +266,27 @@ export function TindaUsers() {
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
                             <Label>Organization</Label>
-                            <Input defaultValue={formData.org} onChange={(e) => setFormData({...formData, org: e.target.value})} />
+                            <Input disabled={isSubmitting} defaultValue={formData.org} onChange={(e) => setFormData({...formData, org: e.target.value})} />
                         </div>
                         <div className="grid gap-2">
                             <Label>BIN</Label>
-                            <Input defaultValue={formData.bin} onChange={(e) => setFormData({...formData, bin: e.target.value})} />
+                            <Input disabled={isSubmitting} defaultValue={formData.bin} onChange={(e) => setFormData({...formData, bin: e.target.value})} />
                         </div>
                         <div className="grid gap-2">
                             <Label>Expire Date</Label>
-                            <Input type="date" defaultValue={formData.expireDate} onChange={(e) => setFormData({...formData, expireDate: e.target.value})} />
+                            <Input type="date" disabled={isSubmitting} defaultValue={formData.expireDate} onChange={(e) => setFormData({...formData, expireDate: e.target.value})} />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsEditOpen(false)}>Отмена</Button>
-                        <Button onClick={handleUpdate}>Сохранить</Button>
+                        <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isSubmitting}>Отмена</Button>
+                        <Button onClick={handleUpdate} disabled={isSubmitting}>
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Сохранить
+                                </>
+                            ) : "Сохранить"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

@@ -1,4 +1,4 @@
-import { Search, Download } from "lucide-react";
+import { Search, Download, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -123,7 +123,11 @@ export function IikoLicenseFilters({
                     variant="outline"
                     className="flex items-center gap-2 border-green-200 text-green-700 hover:bg-green-50 rounded-xl"
                 >
-                    <Download className="w-4 h-4" />
+                    {exportLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                        <Download className="w-4 h-4" />
+                    )}
                     {exportLoading ? "Экспорт..." : "Excel"}
                 </Button>
             </div>

@@ -3,7 +3,10 @@ import { IikoService } from "@/services/iiko.service";
 import type { IIkoLicenseItem, IIkoLicenseFilters } from "@/types/license";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Key } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { RefreshCw, Key, Loader2, Plus } from "lucide-react";
 import { IikoLicenseFilters } from "@/components/iikoLicenseFilters";
 import { Pagination } from "@/components/Pagination";
 import { IikoLicenseCard } from "@/components/IikoLicenseCard";
@@ -14,8 +17,10 @@ interface IikoLicensesProps {
 
 export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
     const [licensesData, setLicensesData] = useState<any>(null);
-    const [loading, setLoading] = useState(false);
-    const [exportLoading, setExportLoading] = useState(false);
+
+    const [loading, setLoading] = useState(false); // Загрузка списка
+    const [isSubmitting, setIsSubmitting] = useState(false); // Загрузка действий (экспорт, создание)
+
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
     const [filters, setFilters] = useState<IIkoLicenseFilters>({
@@ -24,7 +29,9 @@ export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
         sortOrder: 'desc'
     });
 
-    // Уведомляем родителя о состоянии загрузки
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [createData, setCreateData] = useState({ uid: "", title: "" });
+
     useEffect(() => {
         onLoadingChange?.(loading);
     }, [loading, onLoadingChange]);
@@ -42,17 +49,37 @@ export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
         }
     };
 
-    // Обновляем данные при изменении фильтров
     useEffect(() => {
         fetchLicenses(1);
     }, [filters]);
 
+
+    const handleCreate = async () => {
+        if (!createData.uid || !createData.title) {
+            alert("Заполните UID и Название");
+            return;
+        }
+
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+        try {
+            await IikoService.createLicense(createData.uid, createData.title);
+            setIsCreateOpen(false);
+            setCreateData({ uid: "", title: "" });
+            await fetchLicenses(1);
+        } catch (err) {
+            console.error(err);
+            alert("Ошибка создания лицензии");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const handleExport = async () => {
-        setExportLoading(true);
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         try {
             const blob = await IikoService.exportLicenses(filters);
-
-            // Создаем ссылку для скачивания
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.style.display = 'none';
@@ -66,7 +93,7 @@ export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
             console.error('Ошибка при экспорте:', err);
             alert('Произошла ошибка при экспорте данных');
         } finally {
-            setExportLoading(false);
+            setIsSubmitting(false);
         }
     };
 
@@ -86,19 +113,28 @@ export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
                     </p>
                 </div>
 
-                <Button
-                    onClick={() => fetchLicenses(currentPage)}
-                    disabled={loading}
-                    variant="outline"
-                    className="flex items-center gap-2 rounded-xl"
-                >
-                    {loading ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                        <RefreshCw className="w-4 h-4" />
-                    )}
-                    {loading ? "Обновление..." : "Обновить"}
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        onClick={() => setIsCreateOpen(true)}
+                        className="bg-gradient-to-r from-purple-600 to-indigo-600 border-0"
+                    >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Добавить
+                    </Button>
+                    <Button
+                        onClick={() => fetchLicenses(currentPage)}
+                        disabled={loading || isSubmitting}
+                        variant="outline"
+                        className="flex items-center gap-2 rounded-xl"
+                    >
+                        {loading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <RefreshCw className="w-4 h-4" />
+                        )}
+                        {loading ? "Обновление..." : "Обновить"}
+                    </Button>
+                </div>
             </div>
 
             {/* Фильтры */}
@@ -106,7 +142,7 @@ export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
                 filters={filters}
                 onFiltersChange={setFilters}
                 onExport={handleExport}
-                exportLoading={exportLoading}
+                exportLoading={isSubmitting}
                 totalCount={licensesData?.total || 0}
                 filteredCount={licensesData?.items?.length || 0}
             />
@@ -116,7 +152,7 @@ export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={fetchLicenses}
-                loading={loading}
+                loading={loading || isSubmitting}
             />
 
             {/* Содержимое */}
@@ -124,7 +160,7 @@ export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
                 <CardContent className="p-0">
                     {loading ? (
                         <div className="flex justify-center items-center py-12">
-                            <RefreshCw className="w-8 h-8 animate-spin text-purple-600" />
+                            <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
                         </div>
                     ) : licensesData?.items?.length > 0 ? (
                         <div className="space-y-6 p-6">
@@ -152,15 +188,61 @@ export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
                 </CardContent>
             </Card>
 
-            {/* Пагинация внизу */}
             {licensesData?.items?.length > 0 && (
                 <Pagination
                     currentPage={currentPage}
                     totalPages={totalPages}
                     onPageChange={fetchLicenses}
-                    loading={loading}
+                    loading={loading || isSubmitting}
                 />
             )}
+
+            {/* Dialog create */}
+            <Dialog open={isCreateOpen} onOpenChange={(val) => !isSubmitting && setIsCreateOpen(val)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Новая лицензия iiko</DialogTitle>
+                        <DialogDescription>
+                            Создание новой лицензии в системе.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label>UID <span className="text-red-500">*</span></Label>
+                            <Input
+                                value={createData.uid}
+                                onChange={(e) => setCreateData({...createData, uid: e.target.value})}
+                                placeholder="Уникальный идентификатор"
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Название <span className="text-red-500">*</span></Label>
+                            <Input
+                                value={createData.title}
+                                onChange={(e) => setCreateData({...createData, title: e.target.value})}
+                                placeholder="Название точки/организации"
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isSubmitting}>
+                            Отмена
+                        </Button>
+                        <Button onClick={handleCreate} disabled={isSubmitting}>
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Создаем...
+                                </>
+                            ) : (
+                                "Создать"
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
