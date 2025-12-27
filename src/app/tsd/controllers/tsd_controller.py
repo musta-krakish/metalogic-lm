@@ -348,19 +348,29 @@ class TsdController:
         headers = cls._headers()
         try:
             if org is not None:
-                requests.patch(f"{cls.BASE_URL}Auth/SetOrg", params={"userName": username, "text": org},
+                requests.patch(f"{cls.BASE_URL}api/Admin/SetOrg",
+                               params={"username": username, "org": org},
                                headers=headers).raise_for_status()
 
             if bin_code is not None:
-                requests.patch(f"{cls.BASE_URL}Auth/SetBin", params={"userName": username, "text": bin_code},
+                requests.patch(f"{cls.BASE_URL}api/Admin/SetBIN",
+                               params={"username": username, "bin": bin_code},
                                headers=headers).raise_for_status()
 
             if count is not None:
-                requests.patch(f"{cls.BASE_URL}Auth/SetDeviceCount", params={"userName": username, "count": count},
+                requests.patch(f"{cls.BASE_URL}api/Admin/SetDeviceCount",
+                               params={"username": username, "countdevice": count},
                                headers=headers).raise_for_status()
 
             if expire_date is not None:
-                requests.patch(f"{cls.BASE_URL}Auth/SetExpireDate", params={"userName": username, "date": expire_date},
+                try:
+                    dt = datetime.fromisoformat(expire_date.replace("Z", "+00:00"))
+                    formatted_date = dt.strftime("%Y-%m-%dT%H:%M:%S")
+                except ValueError:
+                    formatted_date = expire_date
+
+                requests.patch(f"{cls.BASE_URL}api/Admin/SetExpireDate",
+                               params={"username": username, "expireDate": formatted_date},
                                headers=headers).raise_for_status()
 
             cls.sync_users()
