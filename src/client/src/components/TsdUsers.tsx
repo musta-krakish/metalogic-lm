@@ -11,6 +11,16 @@ import { TsdUserCard } from "./TsdUserCard";
 import { Pagination } from "./Pagination";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/empty-state";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function TsdUsers() {
     const [data, setData] = useState<{ items: TsdUser[], total: number }>({ items: [], total: 0 });
@@ -27,6 +37,7 @@ export function TsdUsers() {
     const [createData, setCreateData] = useState<Partial<TsdCreateDto>>({ role: "User" });
     const [editForm, setEditForm] = useState<{ org?: string, bin?: string, count?: number, expireDate?: string }>({});
     const [newPassword, setNewPassword] = useState("");
+    const [deleteUsername, setDeleteUsername] = useState<string | null>(null);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -134,11 +145,15 @@ export function TsdUsers() {
         }
     };
 
-    const handleDelete = async (username: string) => {
-        if (!confirm(`Удалить пользователя ${username}?`)) return;
+    const handleDeleteClick = (username: string) => {
+        setDeleteUsername(username);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteUsername) return;
 
         const promise = async () => {
-             await TsdService.deleteUser(username);
+             await TsdService.deleteUser(deleteUsername);
              await fetchUsers();
         };
 
@@ -147,6 +162,8 @@ export function TsdUsers() {
             success: 'Пользователь удален',
             error: 'Ошибка удаления'
         });
+
+        setDeleteUsername(null);
     };
 
     const handleToggleActive = async (username: string) => {
@@ -245,7 +262,7 @@ export function TsdUsers() {
                             user={user}
                             onEdit={openEdit}
                             onPassword={openPass}
-                            onDelete={handleDelete}
+                            onDelete={handleDeleteClick}
                             onToggleActive={handleToggleActive}
                         />
                     ))
@@ -365,6 +382,24 @@ export function TsdUsers() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <AlertDialog open={!!deleteUsername} onOpenChange={(open) => !open && setDeleteUsername(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Удалить пользователя?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Пользователь <b>{deleteUsername}</b> будет удален.
+                            Устройства потеряют доступ.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white">
+                            Удалить
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

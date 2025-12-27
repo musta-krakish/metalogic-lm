@@ -11,6 +11,16 @@ import { ArcaLicenseCard } from "./ArcaLicenseCard";
 import { Pagination } from "./Pagination";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/empty-state";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function ArcaLicenses() {
     const [data, setData] = useState<{ items: ArcaLicense[], total: number }>({ items: [], total: 0 });
@@ -19,10 +29,11 @@ export function ArcaLicenses() {
     const [page, setPage] = useState(1);
     const [filters, setFilters] = useState<ArcaFilters>({ status: 'all' });
 
+    const [deleteId, setDeleteId] = useState<string | null>(null);
+
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editingLicense, setEditingLicense] = useState<ArcaLicense | null>(null);
-
     const [formData, setFormData] = useState<Partial<ArcaCreateDto & { expire_date?: string, status?: string }>>({});
 
     const fetchLicenses = async () => {
@@ -76,11 +87,15 @@ export function ArcaLicenses() {
         }
     };
 
-    const handleDelete = async (mac: string) => {
-        if (!confirm(`Удалить лицензию ${mac}?`)) return;
+    const handleDeleteClick = (mac: string) => {
+        setDeleteId(mac);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteId) return;
 
         const promise = async () => {
-            await ArcaService.deleteLicense(mac);
+            await ArcaService.deleteLicense(deleteId);
             await fetchLicenses();
         };
 
@@ -89,6 +104,8 @@ export function ArcaLicenses() {
             success: 'Лицензия удалена',
             error: 'Не удалось удалить лицензию'
         });
+
+        setDeleteId(null);
     };
 
     const handleToggleActive = async (mac: string) => {
@@ -202,38 +219,23 @@ export function ArcaLicenses() {
 
             <div className="space-y-4">
                 {loading ? (
-                    <div className="flex justify-center py-12">
-                         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                    </div>
+                    <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>
                 ) : data.items.length > 0 ? (
                     data.items.map((license) => (
                         <ArcaLicenseCard
                             key={license.mac_address}
                             license={license}
                             onEdit={openEdit}
-                            onDelete={handleDelete}
+                            onDelete={handleDeleteClick}
                             onToggleActive={handleToggleActive}
                         />
                     ))
                 ) : (
-                    <EmptyState
-                        title="Лицензии не найдены"
-                        description="По вашему запросу ничего не найдено. Попробуйте изменить фильтры или синхронизировать данные."
-                        icon={Server}
-                        actionLabel="Создать лицензию"
-                        onAction={() => setIsCreateOpen(true)}
-                    />
+                    <EmptyState title="Лицензии не найдены" icon={Server} actionLabel="Создать" onAction={() => setIsCreateOpen(true)} />
                 )}
             </div>
 
-             {data.items.length > 0 && (
-                <Pagination
-                    currentPage={page}
-                    totalPages={Math.ceil(data.total / 10)}
-                    onPageChange={setPage}
-                    loading={loading}
-                />
-            )}
+             {data.items.length > 0 && <Pagination currentPage={page} totalPages={Math.ceil(data.total / 10)} onPageChange={setPage} loading={loading} />}
 
             {/* Create Dialog */}
             <Dialog open={isCreateOpen} onOpenChange={(val) => !isSubmitting && setIsCreateOpen(val)}>
@@ -318,6 +320,24 @@ export function ArcaLicenses() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Вы собираетесь удалить лицензию <b>{deleteId}</b>.
+                            Это действие нельзя отменить.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white">
+                            Удалить
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
