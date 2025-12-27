@@ -20,6 +20,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DateDisplay } from "@/components/ui/date-display";
 
 interface IikoLicenseCardProps {
     license: IIkoLicenseItem;
@@ -32,14 +33,6 @@ export function IikoLicenseCard({ license, showOrganization = true }: IikoLicens
     const status = isActive ? "active" : "expired";
     const statusVariant = status === "active" ? "default" : "destructive";
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString("ru-RU", {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-        });
-    };
-
     return (
         <div className="group border border-gray-200 rounded-xl p-4 bg-white hover:shadow-lg transition-all duration-300 hover:border-purple-200">
             <div className="flex justify-between items-start">
@@ -51,19 +44,11 @@ export function IikoLicenseCard({ license, showOrganization = true }: IikoLicens
                                 {license.license?.organization?.name || "Неизвестная организация"}
                             </h3>
                             <Badge variant={statusVariant} className="ml-2">
-                                {status === "active" ? (
-                                    <CheckCircle className="w-3 h-3 mr-1" />
-                                ) : (
-                                    <XCircle className="w-3 h-3 mr-1" />
-                                )}
+                                {status === "active" ? <CheckCircle className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
                                 {status === "active" ? "Активна" : "Истекла"}
                             </Badge>
                             <Badge variant={isOnline ? "default" : "secondary"} className="ml-2">
-                                {isOnline ? (
-                                    <Wifi className="w-3 h-3 mr-1" />
-                                ) : (
-                                    <WifiOff className="w-3 h-3 mr-1" />
-                                )}
+                                {isOnline ? <Wifi className="w-3 h-3 mr-1" /> : <WifiOff className="w-3 h-3 mr-1" />}
                                 {isOnline ? "Онлайн" : "Офлайн"}
                             </Badge>
                         </div>
@@ -94,7 +79,7 @@ export function IikoLicenseCard({ license, showOrganization = true }: IikoLicens
                             <Calendar className="w-4 h-4 text-gray-400" />
                             <div>
                                 <div className="text-xs text-gray-500">Истекает</div>
-                                <span>{license.license?.licenseExpirationDate ? formatDate(license.license.licenseExpirationDate) : 'Не указано'}</span>
+                                <DateDisplay date={license.license?.licenseExpirationDate} />
                             </div>
                         </div>
 
@@ -102,7 +87,7 @@ export function IikoLicenseCard({ license, showOrganization = true }: IikoLicens
                             <Calendar className="w-4 h-4 text-gray-400" />
                             <div>
                                 <div className="text-xs text-gray-500">Последний запрос</div>
-                                <span>{license.license?.lastRequestDate ? formatDate(license.license.lastRequestDate) : 'Никогда'}</span>
+                                <DateDisplay date={license.license?.lastRequestDate} />
                             </div>
                         </div>
                     </div>

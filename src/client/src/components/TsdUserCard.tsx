@@ -22,6 +22,7 @@ import {
     KeyRound,
     Monitor
 } from "lucide-react";
+import { DateDisplay } from "@/components/ui/date-display";
 
 interface Props {
     user: TsdUser;
@@ -34,20 +35,11 @@ interface Props {
 export function TsdUserCard({ user, onEdit, onPassword, onDelete, onToggleActive }: Props) {
     const isActive = user.isActive;
 
-    const formatDate = (dateString?: string) => {
-        if (!dateString) return "—";
-        try {
-            return new Date(dateString).toLocaleDateString("ru-RU");
-        } catch {
-            return dateString;
-        }
-    };
-
     return (
         <Card className="p-4 border border-gray-200 hover:shadow-md transition-all duration-300 bg-white">
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div className="flex-1 space-y-3">
-                    {/* Header: Username & Status */}
+                    {/* Header */}
                     <div className="flex items-center gap-3 flex-wrap">
                         <div className="flex items-center gap-2 bg-orange-50 px-2 py-1 rounded-md border border-orange-100">
                             <Smartphone className="w-4 h-4 text-orange-500" />
@@ -96,9 +88,7 @@ export function TsdUserCard({ user, onEdit, onPassword, onDelete, onToggleActive
                             <Calendar className="w-4 h-4 text-red-400" />
                             <div className="flex flex-col">
                                 <span className="text-xs text-gray-400">Истекает</span>
-                                <span className={user.expireDate && new Date(user.expireDate) < new Date() ? "text-red-600 font-bold" : ""}>
-                                    {formatDate(user.expireDate)}
-                                </span>
+                                <DateDisplay date={user.expireDate} />
                             </div>
                         </div>
                     </div>

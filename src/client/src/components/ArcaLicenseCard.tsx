@@ -1,4 +1,4 @@
-import type {ArcaLicense} from "@/types/arca.ts";
+import type { ArcaLicense } from "@/types/arca.ts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import {
     Building, Calendar, Hash, MoreVertical,
     Power, Trash2, Edit, CreditCard
 } from "lucide-react";
+import { DateDisplay } from "@/components/ui/date-display";
 
 interface Props {
     license: ArcaLicense;
@@ -24,15 +25,6 @@ export function ArcaLicenseCard({ license, onEdit, onDelete, onToggleActive }: P
     const isActive = license.status === "True" || license.status === "active";
     const licenseKey = license.licences_key || license.license_key || "No Key";
     const licenseDate = license.licences_date || license.license_date;
-
-    const formatDate = (dateString?: string) => {
-        if (!dateString) return "Не указано";
-        try {
-            return new Date(dateString).toLocaleDateString("ru-RU");
-        } catch {
-            return dateString;
-        }
-    };
 
     return (
         <Card className="p-4 border border-gray-200 hover:shadow-md transition-all duration-300 bg-white">
@@ -75,7 +67,7 @@ export function ArcaLicenseCard({ license, onEdit, onDelete, onToggleActive }: P
                             <Calendar className="w-4 h-4 text-green-400" />
                             <div className="flex flex-col">
                                 <span className="text-xs text-gray-400">Дата лицензии</span>
-                                <span>{formatDate(licenseDate)}</span>
+                                <DateDisplay date={licenseDate} />
                             </div>
                         </div>
 
@@ -83,7 +75,7 @@ export function ArcaLicenseCard({ license, onEdit, onDelete, onToggleActive }: P
                             <Calendar className="w-4 h-4 text-red-400" />
                             <div className="flex flex-col">
                                 <span className="text-xs text-gray-400">Истекает</span>
-                                <span>{formatDate(license.expire_date)}</span>
+                                <DateDisplay date={license.expire_date} />
                             </div>
                         </div>
                     </div>

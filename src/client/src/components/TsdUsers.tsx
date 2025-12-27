@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { RefreshCw, Download, Plus, Search, Loader2 } from "lucide-react";
+import { RefreshCw, Download, Plus, Search, Loader2, Smartphone } from "lucide-react";
 import { TsdUserCard } from "./TsdUserCard";
 import { Pagination } from "./Pagination";
+import { toast } from "sonner";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export function TsdUsers() {
     const [data, setData] = useState<{ items: TsdUser[], total: number }>({ items: [], total: 0 });
@@ -33,31 +35,37 @@ export function TsdUsers() {
             setData(res);
         } catch (error) {
             console.error(error);
+            toast.error("Не удалось загрузить пользователей TSD");
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        fetchUsers();
-    }, [page, filters]);
+    useEffect(() => { fetchUsers(); }, [page, filters]);
 
     const handleSync = async () => {
         if (loading) return;
         setLoading(true);
-        try {
+
+        const promise = async () => {
             await TsdService.syncUsers();
             await fetchUsers();
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
+        };
+
+        toast.promise(promise(), {
+            loading: 'Синхронизация TSD...',
+            success: 'Успешно синхронизировано',
+            error: 'Ошибка синхронизации'
+        });
+
+        try { await promise; }
+        catch (e) { console.error(e); }
+        finally { setLoading(false); }
     };
 
     const handleCreate = async () => {
         if (!createData.username || !createData.password) {
-            alert("Username and Password are required");
+            toast.warning("Username и Password обязательны");
             return;
         }
         if (isSubmitting) return;
@@ -67,9 +75,10 @@ export function TsdUsers() {
             setIsCreateOpen(false);
             setCreateData({ role: "User" });
             await fetchUsers();
+            toast.success("Пользователь TSD создан");
         } catch (error) {
             console.error(error);
-            alert("Error creating user");
+            toast.error("Ошибка создания пользователя");
         } finally {
             setIsSubmitting(false);
         }
@@ -99,9 +108,10 @@ export function TsdUsers() {
             setIsEditOpen(false);
             setEditingUser(null);
             await fetchUsers();
+            toast.success("Данные обновлены");
         } catch (error) {
             console.error(error);
-            alert("Failed to update user");
+            toast.error("Ошибка при обновлении");
         } finally {
             setIsSubmitting(false);
         }
@@ -115,32 +125,38 @@ export function TsdUsers() {
             setIsPassOpen(false);
             setNewPassword("");
             setEditingUser(null);
-            alert("Password updated");
+            toast.success("Пароль успешно изменен");
         } catch (error) {
             console.error(error);
-            alert("Failed to update password");
+            toast.error("Не удалось сменить пароль");
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const handleDelete = async (username: string) => {
-        if (!confirm(`Are you sure you want to delete ${username}?`)) return;
-        try {
-            await TsdService.deleteUser(username);
-            fetchUsers();
-        } catch (error) {
-            console.error(error);
-            alert("Failed to delete user");
-        }
+        if (!confirm(`Удалить пользователя ${username}?`)) return;
+
+        const promise = async () => {
+             await TsdService.deleteUser(username);
+             await fetchUsers();
+        };
+
+        toast.promise(promise(), {
+            loading: 'Удаление...',
+            success: 'Пользователь удален',
+            error: 'Ошибка удаления'
+        });
     };
 
     const handleToggleActive = async (username: string) => {
         try {
             await TsdService.toggleActive(username);
-            fetchUsers();
+            await fetchUsers();
+            toast.success("Статус изменен");
         } catch (error) {
             console.error(error);
+            toast.error("Ошибка смены статуса");
         }
     };
 
@@ -150,10 +166,12 @@ export function TsdUsers() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `tsd_users_${new Date().toISOString().split('T')[0]}.xlsx`;
+            a.download = `tsd_users.xlsx`;
             a.click();
+            toast.success("Экспорт завершен");
         } catch (error) {
             console.error(error);
+            toast.error("Ошибка экспорта");
         }
     };
 
@@ -216,34 +234,47 @@ export function TsdUsers() {
             </div>
 
             <div className="space-y-4">
-                {data.items.map((user) => (
-                    <TsdUserCard
-                        key={user.username}
-                        user={user}
-                        onEdit={openEdit}
-                        onPassword={openPass}
-                        onDelete={handleDelete}
-                        onToggleActive={handleToggleActive}
+                {loading ? (
+                    <div className="flex justify-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin text-orange-600" />
+                    </div>
+                ) : data.items.length > 0 ? (
+                    data.items.map((user) => (
+                        <TsdUserCard
+                            key={user.username}
+                            user={user}
+                            onEdit={openEdit}
+                            onPassword={openPass}
+                            onDelete={handleDelete}
+                            onToggleActive={handleToggleActive}
+                        />
+                    ))
+                ) : (
+                    <EmptyState
+                        title="Пользователи TSD не найдены"
+                        description="Нет данных. Синхронизируйте устройства или добавьте нового пользователя."
+                        icon={Smartphone}
+                        actionLabel="Создать пользователя"
+                        onAction={() => setIsCreateOpen(true)}
                     />
-                ))}
-                {data.items.length === 0 && !loading && (
-                    <div className="text-center py-10 text-gray-500">Пользователи TSD не найдены</div>
                 )}
             </div>
 
-            <Pagination
-                currentPage={page}
-                totalPages={Math.ceil(data.total / 10)}
-                onPageChange={setPage}
-                loading={loading}
-            />
+            {data.items.length > 0 && (
+                <Pagination
+                    currentPage={page}
+                    totalPages={Math.ceil(data.total / 10)}
+                    onPageChange={setPage}
+                    loading={loading}
+                />
+            )}
 
-            {/* Create Dialog */}
+            {/* Dialogs */}
             <Dialog open={isCreateOpen} onOpenChange={(val) => !isSubmitting && setIsCreateOpen(val)}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Новый пользователь TSD</DialogTitle>
-                        <DialogDescription>Создание нового пользователя терминала.</DialogDescription>
+                        <DialogDescription>Создание пользователя терминала.</DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
@@ -267,30 +298,23 @@ export function TsdUsers() {
                             </Select>
                         </div>
                         <div className="grid gap-2">
-                            <Label>Organization (Optional)</Label>
+                            <Label>Organization</Label>
                             <Input disabled={isSubmitting} onChange={(e) => setCreateData({...createData, org: e.target.value})} />
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isSubmitting}>Отмена</Button>
                         <Button onClick={handleCreate} disabled={isSubmitting}>
-                            {isSubmitting ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Создаем...
-                                </>
-                            ) : "Создать"}
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Создать"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            {/* Edit Dialog */}
             <Dialog open={isEditOpen} onOpenChange={(val) => !isSubmitting && setIsEditOpen(val)}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Редактирование пользователя</DialogTitle>
-                        <DialogDescription>{editingUser?.username}</DialogDescription>
+                        <DialogTitle>Редактирование</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
@@ -315,18 +339,12 @@ export function TsdUsers() {
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isSubmitting}>Отмена</Button>
                         <Button onClick={handleUpdate} disabled={isSubmitting}>
-                            {isSubmitting ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Сохранить
-                                </>
-                            ) : "Сохранить"}
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Сохранить"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            {/* Password Dialog */}
             <Dialog open={isPassOpen} onOpenChange={(val) => !isSubmitting && setIsPassOpen(val)}>
                 <DialogContent>
                     <DialogHeader>
@@ -342,12 +360,7 @@ export function TsdUsers() {
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsPassOpen(false)} disabled={isSubmitting}>Отмена</Button>
                         <Button onClick={handleChangePassword} disabled={isSubmitting}>
-                            {isSubmitting ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Изменить
-                                </>
-                            ) : "Изменить"}
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Изменить"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

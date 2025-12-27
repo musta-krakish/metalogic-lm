@@ -6,14 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { RefreshCw, Download, Plus, Search, Loader2 } from "lucide-react";
+import { RefreshCw, Download, Plus, Search, Loader2, Server } from "lucide-react";
 import { ArcaLicenseCard } from "./ArcaLicenseCard";
 import { Pagination } from "./Pagination";
+import { toast } from "sonner";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export function ArcaLicenses() {
     const [data, setData] = useState<{ items: ArcaLicense[], total: number }>({ items: [], total: 0 });
     const [loading, setLoading] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false); // Состояние отправки формы
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [page, setPage] = useState(1);
     const [filters, setFilters] = useState<ArcaFilters>({ status: 'all' });
 
@@ -30,6 +32,7 @@ export function ArcaLicenses() {
             setData(res);
         } catch (error) {
             console.error(error);
+            toast.error("Не удалось загрузить список лицензий");
         } finally {
             setLoading(false);
         }
@@ -40,7 +43,18 @@ export function ArcaLicenses() {
     const handleSync = async () => {
         if (loading) return;
         setLoading(true);
-        try { await ArcaService.syncLicenses(); await fetchLicenses(); }
+        const promise = async () => {
+            await ArcaService.syncLicenses();
+            await fetchLicenses();
+        };
+
+        toast.promise(promise(), {
+            loading: 'Синхронизация с Arca...',
+            success: 'Синхронизация успешно выполнена',
+            error: 'Ошибка при синхронизации'
+        });
+
+        try { await promise; }
         catch (error) { console.error(error); }
         finally { setLoading(false); }
     };
@@ -53,9 +67,10 @@ export function ArcaLicenses() {
             setIsCreateOpen(false);
             setFormData({});
             await fetchLicenses();
+            toast.success("Лицензия успешно создана");
         } catch (error) {
             console.error(error);
-            alert("Ошибка создания лицензии");
+            toast.error("Ошибка создания лицензии");
         } finally {
             setIsSubmitting(false);
         }
@@ -63,13 +78,29 @@ export function ArcaLicenses() {
 
     const handleDelete = async (mac: string) => {
         if (!confirm(`Удалить лицензию ${mac}?`)) return;
-        try { await ArcaService.deleteLicense(mac); fetchLicenses(); }
-        catch (error) { console.error(error); }
+
+        const promise = async () => {
+            await ArcaService.deleteLicense(mac);
+            await fetchLicenses();
+        };
+
+        toast.promise(promise(), {
+            loading: 'Удаление...',
+            success: 'Лицензия удалена',
+            error: 'Не удалось удалить лицензию'
+        });
     };
 
     const handleToggleActive = async (mac: string) => {
-        try { await ArcaService.toggleActive(mac); fetchLicenses(); }
-        catch (error) { console.error(error); }
+        try {
+            await ArcaService.toggleActive(mac);
+            await fetchLicenses();
+            toast.success("Статус лицензии изменен");
+        }
+        catch (error) {
+            console.error(error);
+            toast.error("Ошибка изменения статуса");
+        }
     };
 
     const handleExport = async () => {
@@ -80,7 +111,11 @@ export function ArcaLicenses() {
             a.href = url;
             a.download = `arca_licenses.xlsx`;
             a.click();
-        } catch (error) { console.error(error); }
+            toast.success("Файл экспорта скачан");
+        } catch (error) {
+            console.error(error);
+            toast.error("Ошибка при экспорте");
+        }
     };
 
     const handleUpdate = async () => {
@@ -101,9 +136,10 @@ export function ArcaLicenses() {
             setEditingLicense(null);
             setFormData({});
             await fetchLicenses();
+            toast.success("Лицензия обновлена");
         } catch (error) {
             console.error(error);
-            alert("Ошибка обновления");
+            toast.error("Ошибка обновления лицензии");
         } finally {
             setIsSubmitting(false);
         }
@@ -115,12 +151,9 @@ export function ArcaLicenses() {
             org: license.org,
             bin: license.bin,
             license_key: license.licences_key || license.license_key,
-
             license_date: license.licences_date ? license.licences_date.split('T')[0] :
                           license.license_date ? license.license_date.split('T')[0] : '',
-
             expire_date: license.expire_date ? license.expire_date.split('T')[0] : '',
-
             status: license.status
         });
         setIsEditOpen(true);
@@ -161,30 +194,46 @@ export function ArcaLicenses() {
                         <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                         {loading ? 'Sync...' : 'Sync'}
                     </Button>
-                    <Button onClick={() => setIsCreateOpen(true)} className="bg-gradient-to-r from-blue-600 to-cyan-600 border-0">
+                    <Button onClick={() => setIsCreateOpen(true)} className="bg-gradient-to-r from-blue-600 to-cyan-600 border-0 text-white">
                         <Plus className="w-4 h-4 mr-2" /> Создать
                     </Button>
                 </div>
             </div>
 
             <div className="space-y-4">
-                {data.items.map((license) => (
-                    <ArcaLicenseCard
-                        key={license.mac_address}
-                        license={license}
-                        onEdit={openEdit}
-                        onDelete={handleDelete}
-                        onToggleActive={handleToggleActive}
+                {loading ? (
+                    <div className="flex justify-center py-12">
+                         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                    </div>
+                ) : data.items.length > 0 ? (
+                    data.items.map((license) => (
+                        <ArcaLicenseCard
+                            key={license.mac_address}
+                            license={license}
+                            onEdit={openEdit}
+                            onDelete={handleDelete}
+                            onToggleActive={handleToggleActive}
+                        />
+                    ))
+                ) : (
+                    <EmptyState
+                        title="Лицензии не найдены"
+                        description="По вашему запросу ничего не найдено. Попробуйте изменить фильтры или синхронизировать данные."
+                        icon={Server}
+                        actionLabel="Создать лицензию"
+                        onAction={() => setIsCreateOpen(true)}
                     />
-                ))}
+                )}
             </div>
 
-             <Pagination
-                currentPage={page}
-                totalPages={Math.ceil(data.total / 10)}
-                onPageChange={setPage}
-                loading={loading}
-            />
+             {data.items.length > 0 && (
+                <Pagination
+                    currentPage={page}
+                    totalPages={Math.ceil(data.total / 10)}
+                    onPageChange={setPage}
+                    loading={loading}
+                />
+            )}
 
             {/* Create Dialog */}
             <Dialog open={isCreateOpen} onOpenChange={(val) => !isSubmitting && setIsCreateOpen(val)}>
@@ -218,12 +267,7 @@ export function ArcaLicenses() {
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isSubmitting}>Отмена</Button>
                         <Button onClick={handleCreate} disabled={isSubmitting}>
-                            {isSubmitting ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Создаем...
-                                </>
-                            ) : "Создать"}
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Создать"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -269,12 +313,7 @@ export function ArcaLicenses() {
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isSubmitting}>Отмена</Button>
                         <Button onClick={handleUpdate} disabled={isSubmitting}>
-                            {isSubmitting ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Сохраняем...
-                                </>
-                            ) : "Сохранить"}
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Сохранить"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -6,14 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { RefreshCw, Download, Plus, Search, Loader2 } from "lucide-react";
+import { RefreshCw, Download, Plus, Search, Loader2, User } from "lucide-react";
 import { TindaUserCard } from "./TindaUserCard";
 import { Pagination } from "./Pagination";
+import { toast } from "sonner";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export function TindaUsers() {
     const [data, setData] = useState<{ items: TindaUser[], total: number }>({ items: [], total: 0 });
     const [loading, setLoading] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false); // Состояние отправки
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [page, setPage] = useState(1);
     const [filters, setFilters] = useState<TindaFilters>({ status: 'all' });
 
@@ -29,31 +31,37 @@ export function TindaUsers() {
             setData(res);
         } catch (error) {
             console.error(error);
+            toast.error("Не удалось загрузить пользователей Tinda");
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        fetchUsers();
-    }, [page, filters]);
+    useEffect(() => { fetchUsers(); }, [page, filters]);
 
     const handleSync = async () => {
         if (loading) return;
         setLoading(true);
-        try {
-            await TindaService.syncUsers();
-            await fetchUsers();
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
+
+        const promise = async () => {
+             await TindaService.syncUsers();
+             await fetchUsers();
+        };
+
+        toast.promise(promise(), {
+            loading: 'Синхронизация Tinda...',
+            success: 'Синхронизация завершена',
+            error: 'Ошибка синхронизации'
+        });
+
+        try { await promise; }
+        catch (e) { console.error(e); }
+        finally { setLoading(false); }
     };
 
     const handleCreate = async () => {
         if (!formData.username || !formData.password || !formData.expireDate) {
-            alert("Заполните обязательные поля (Username, Password, Expire Date)");
+            toast.warning("Заполните обязательные поля (Username, Password, Expire Date)");
             return;
         }
 
@@ -66,14 +74,15 @@ export function TindaUsers() {
                 org: formData.org || "",
                 bin: formData.bin || "",
                 expireDate: formData.expireDate,
-                role: 1 // Default role
+                role: 1
             });
             setIsCreateOpen(false);
             setFormData({});
             await fetchUsers();
+            toast.success("Пользователь успешно создан");
         } catch (error) {
             console.error(error);
-            alert("Ошибка создания пользователя");
+            toast.error("Ошибка создания пользователя");
         } finally {
             setIsSubmitting(false);
         }
@@ -86,7 +95,6 @@ export function TindaUsers() {
         setIsSubmitting(true);
         try {
             const promises = [];
-
             if (formData.org !== undefined && formData.org !== editingUser.org) {
                 promises.push(TindaService.setOrg(userId, formData.org));
             }
@@ -97,17 +105,16 @@ export function TindaUsers() {
                 promises.push(TindaService.setExpireDate(userId, formData.expireDate));
             }
 
-            if (promises.length > 0) {
-                await Promise.all(promises);
-            }
+            if (promises.length > 0) await Promise.all(promises);
 
             setIsEditOpen(false);
             setEditingUser(null);
             setFormData({});
             await fetchUsers();
+            toast.success("Данные пользователя обновлены");
         } catch (error) {
             console.error(error);
-            alert("Ошибка обновления пользователя");
+            toast.error("Ошибка при обновлении");
         } finally {
             setIsSubmitting(false);
         }
@@ -116,9 +123,26 @@ export function TindaUsers() {
     const handleToggleActive = async (id: string) => {
         try {
             await TindaService.toggleActive(id);
-            fetchUsers();
+            await fetchUsers();
+            toast.success("Статус пользователя изменен");
         } catch (error) {
             console.error(error);
+            toast.error("Не удалось изменить статус");
+        }
+    };
+
+    const handleExport = async () => {
+        try {
+            const blob = await TindaService.exportUsers(filters);
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tinda_users.xlsx`;
+            a.click();
+            toast.success("Файл экспорта скачан");
+        } catch (error) {
+            console.error(error);
+            toast.error("Ошибка экспорта");
         }
     };
 
@@ -130,19 +154,6 @@ export function TindaUsers() {
             expireDate: user.expireDate ? user.expireDate.split('T')[0] : ''
         });
         setIsEditOpen(true);
-    };
-
-    const handleExport = async () => {
-        try {
-            const blob = await TindaService.exportUsers(filters);
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `tinda_users_${new Date().toISOString().split('T')[0]}.xlsx`;
-            a.click();
-        } catch (error) {
-            console.error(error);
-        }
     };
 
     return (
@@ -178,41 +189,54 @@ export function TindaUsers() {
                     </Button>
                     <Button variant="outline" onClick={handleSync} disabled={loading}>
                         <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                        {loading ? 'Sync' : 'Sync'}
+                        Sync
                     </Button>
-                    <Button onClick={() => setIsCreateOpen(true)} className="bg-gradient-to-r from-pink-600 to-rose-600 border-0">
+                    <Button onClick={() => setIsCreateOpen(true)} className="bg-gradient-to-r from-pink-600 to-rose-600 border-0 text-white">
                         <Plus className="w-4 h-4 mr-2" /> Добавить
                     </Button>
                 </div>
             </div>
 
             <div className="space-y-4">
-                {data.items.map((user) => (
-                    <TindaUserCard
-                        key={user._Id || Math.random()}
-                        user={user}
-                        onEdit={openEdit}
-                        onToggleActive={handleToggleActive}
+                {loading ? (
+                     <div className="flex justify-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin text-pink-600" />
+                    </div>
+                ) : data.items.length > 0 ? (
+                    data.items.map((user) => (
+                        <TindaUserCard
+                            key={user._Id || Math.random()}
+                            user={user}
+                            onEdit={openEdit}
+                            onToggleActive={handleToggleActive}
+                        />
+                    ))
+                ) : (
+                    <EmptyState
+                        title="Пользователи Tinda не найдены"
+                        description="Нет данных по вашему запросу. Нажмите 'Sync' или добавьте нового пользователя."
+                        icon={User}
+                        actionLabel="Создать пользователя"
+                        onAction={() => setIsCreateOpen(true)}
                     />
-                ))}
-                {data.items.length === 0 && !loading && (
-                    <div className="text-center py-10 text-gray-500">Пользователи не найдены</div>
                 )}
             </div>
 
-            <Pagination
-                currentPage={page}
-                totalPages={Math.ceil(data.total / 10)}
-                onPageChange={setPage}
-                loading={loading}
-            />
+            {data.items.length > 0 && (
+                <Pagination
+                    currentPage={page}
+                    totalPages={Math.ceil(data.total / 10)}
+                    onPageChange={setPage}
+                    loading={loading}
+                />
+            )}
 
             {/* Create Dialog */}
             <Dialog open={isCreateOpen} onOpenChange={(val) => !isSubmitting && setIsCreateOpen(val)}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Новый пользователь Tinda</DialogTitle>
-                        <DialogDescription>Создание нового аккаунта.</DialogDescription>
+                        <DialogDescription>Заполните обязательные поля для создания.</DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
@@ -245,12 +269,7 @@ export function TindaUsers() {
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isSubmitting}>Отмена</Button>
                         <Button onClick={handleCreate} disabled={isSubmitting}>
-                            {isSubmitting ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Создаем...
-                                </>
-                            ) : "Создать"}
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Создать"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -280,12 +299,7 @@ export function TindaUsers() {
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isSubmitting}>Отмена</Button>
                         <Button onClick={handleUpdate} disabled={isSubmitting}>
-                            {isSubmitting ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Сохранить
-                                </>
-                            ) : "Сохранить"}
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Сохранить"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

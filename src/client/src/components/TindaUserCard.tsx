@@ -18,6 +18,7 @@ import {
     User,
     Shield
 } from "lucide-react";
+import { DateDisplay } from "@/components/ui/date-display";
 
 interface Props {
     user: TindaUser;
@@ -27,26 +28,16 @@ interface Props {
 
 export function TindaUserCard({ user, onEdit, onToggleActive }: Props) {
     const isActive = user.isActive;
-
     const userId = user._Id || "";
-
-    const formatDate = (dateString?: string) => {
-        if (!dateString) return "—";
-        try {
-            return new Date(dateString).toLocaleDateString("ru-RU");
-        } catch {
-            return dateString;
-        }
-    };
 
     return (
         <Card className="p-4 border border-gray-200 hover:shadow-md transition-all duration-300 bg-white">
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div className="flex-1 space-y-3">
-                    {/* Header: Login & Status */}
+                    {/* Header */}
                     <div className="flex items-center gap-3 flex-wrap">
-                        <div className="flex items-center gap-2 bg-gray-100 px-2 py-1 rounded-md">
-                            <User className="w-4 h-4 text-gray-500" />
+                        <div className="flex items-center gap-2 bg-pink-50 px-2 py-1 rounded-md border border-pink-100">
+                            <User className="w-4 h-4 text-pink-500" />
                             <span className="font-bold text-sm text-gray-700">
                                 {user.login || "No Login"}
                             </span>
@@ -84,7 +75,7 @@ export function TindaUserCard({ user, onEdit, onToggleActive }: Props) {
                             <Calendar className="w-4 h-4 text-green-400" />
                             <div className="flex flex-col">
                                 <span className="text-xs text-gray-400">Создан</span>
-                                <span>{formatDate(user.createDate)}</span>
+                                <DateDisplay date={user.createDate} />
                             </div>
                         </div>
 
@@ -92,9 +83,7 @@ export function TindaUserCard({ user, onEdit, onToggleActive }: Props) {
                             <Calendar className="w-4 h-4 text-red-400" />
                             <div className="flex flex-col">
                                 <span className="text-xs text-gray-400">Истекает</span>
-                                <span className={user.expireDate && new Date(user.expireDate) < new Date() ? "text-red-600 font-bold" : ""}>
-                                    {formatDate(user.expireDate)}
-                                </span>
+                                <DateDisplay date={user.expireDate} />
                             </div>
                         </div>
                     </div>

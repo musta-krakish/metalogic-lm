@@ -29,9 +29,9 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="logs" element={<Logs />} />
           <Route path="licenses" element={<Licenses />} />
-            <Toaster richColors position="top-right" />
         </Route>
       </Routes>
+        <Toaster richColors position="top-right" />
     </BrowserRouter>
   );
 }

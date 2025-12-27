@@ -10,6 +10,8 @@ import { RefreshCw, Key, Loader2, Plus } from "lucide-react";
 import { IikoLicenseFilters } from "@/components/iikoLicenseFilters";
 import { Pagination } from "@/components/Pagination";
 import { IikoLicenseCard } from "@/components/IikoLicenseCard";
+import { toast } from "sonner";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface IikoLicensesProps {
     onLoadingChange?: (loading: boolean) => void;
@@ -17,10 +19,8 @@ interface IikoLicensesProps {
 
 export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
     const [licensesData, setLicensesData] = useState<any>(null);
-
-    const [loading, setLoading] = useState(false); // Загрузка списка
-    const [isSubmitting, setIsSubmitting] = useState(false); // Загрузка действий (экспорт, создание)
-
+    const [loading, setLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
     const [filters, setFilters] = useState<IIkoLicenseFilters>({
@@ -44,6 +44,7 @@ export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
             setCurrentPage(page);
         } catch (err) {
             console.error(err);
+            toast.error("Не удалось загрузить лицензии Iiko");
         } finally {
             setLoading(false);
         }
@@ -53,10 +54,9 @@ export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
         fetchLicenses(1);
     }, [filters]);
 
-
     const handleCreate = async () => {
         if (!createData.uid || !createData.title) {
-            alert("Заполните UID и Название");
+            toast.warning("Заполните UID и Название");
             return;
         }
 
@@ -67,9 +67,10 @@ export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
             setIsCreateOpen(false);
             setCreateData({ uid: "", title: "" });
             await fetchLicenses(1);
+            toast.success("Лицензия Iiko успешно добавлена");
         } catch (err) {
             console.error(err);
-            alert("Ошибка создания лицензии");
+            toast.error("Ошибка при создании лицензии");
         } finally {
             setIsSubmitting(false);
         }
@@ -84,14 +85,15 @@ export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
             const a = document.createElement('a');
             a.style.display = 'none';
             a.href = url;
-            a.download = `iiko_licenses_${new Date().toISOString().split('T')[0]}.xlsx`;
+            a.download = `iiko_licenses.xlsx`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
+            toast.success("Экспорт завершен");
         } catch (err) {
             console.error('Ошибка при экспорте:', err);
-            alert('Произошла ошибка при экспорте данных');
+            toast.error('Произошла ошибка при экспорте данных');
         } finally {
             setIsSubmitting(false);
         }
@@ -101,7 +103,6 @@ export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
 
     return (
         <div className="space-y-6">
-            {/* Заголовок и действия */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -137,7 +138,6 @@ export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
                 </div>
             </div>
 
-            {/* Фильтры */}
             <IikoLicenseFilters
                 filters={filters}
                 onFiltersChange={setFilters}
@@ -147,7 +147,6 @@ export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
                 filteredCount={licensesData?.items?.length || 0}
             />
 
-            {/* Пагинация */}
             <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
@@ -155,7 +154,6 @@ export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
                 loading={loading || isSubmitting}
             />
 
-            {/* Содержимое */}
             <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm">
                 <CardContent className="p-0">
                     {loading ? (
@@ -172,18 +170,13 @@ export function IikoLicenses({ onLoadingChange }: IikoLicensesProps) {
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-12">
-                            <Key className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                {filters.search || filters.status !== 'all' ? "Лицензии не найдены" : "Нет лицензий"}
-                            </h3>
-                            <p className="text-gray-500 max-w-sm mx-auto">
-                                {filters.search || filters.status !== 'all'
-                                    ? "Попробуйте изменить параметры фильтрации"
-                                    : "Лицензии iiko еще не добавлены в систему"
-                                }
-                            </p>
-                        </div>
+                        <EmptyState
+                             title="Лицензии Iiko не найдены"
+                             description="Попробуйте изменить параметры фильтрации или добавьте новую лицензию."
+                             icon={Key}
+                             actionLabel="Добавить лицензию"
+                             onAction={() => setIsCreateOpen(true)}
+                        />
                     )}
                 </CardContent>
             </Card>
