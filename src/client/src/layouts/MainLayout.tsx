@@ -9,6 +9,8 @@ import {
     Menu,
     X,
     Shield,
+    FolderOpen,
+    Activity
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -43,15 +45,36 @@ export default function MainLayout() {
             name: "Лицензии",
             href: "/licenses",
             icon: Key,
-            current: location.pathname === "/licenses" || location.pathname.startsWith("/licenses")
+            current: location.pathname.startsWith("/licenses")
         },
         {
             name: "Логи",
             href: "/logs",
             icon: FileText,
-            current: location.pathname === "/logs" || location.pathname.startsWith("/logs")
+            current: location.pathname.startsWith("/logs")
+        },
+        {
+            name: "Файлы",
+            href: "/files",
+            icon: FolderOpen,
+            current: location.pathname.startsWith("/files")
+        },
+        {
+            name: "Grafana",
+            href: "https://grafana.metalogic.kz/",
+            icon: Activity,
+            current: false,
+            external: true
         },
     ];
+
+
+    const getNavItemClasses = (current: boolean) => cn(
+        "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+        current
+            ? "bg-gradient-to-r from-purple-50 to-blue-50 text-purple-700 border border-purple-200"
+            : "text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm"
+    );
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 flex flex-col">
@@ -64,12 +87,8 @@ export default function MainLayout() {
             )}>
                 <div className="px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
-                        {/* Логотип и бренд */}
                         <div className="flex items-center gap-3">
-                            <Link
-                                to="/"
-                                className="flex items-center gap-3 group"
-                            >
+                            <Link to="/" className="flex items-center gap-3 group">
                                 <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
                                     <Shield className="w-5 h-5 text-white" />
                                 </div>
@@ -88,16 +107,27 @@ export default function MainLayout() {
                         <nav className="hidden md:flex items-center gap-1">
                             {navigation.map((item) => {
                                 const Icon = item.icon;
+
+                                if (item.external) {
+                                    return (
+                                        <a
+                                            key={item.name}
+                                            href={item.href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={getNavItemClasses(false)}
+                                        >
+                                            <Icon className="w-4 h-4" />
+                                            {item.name}
+                                        </a>
+                                    );
+                                }
+
                                 return (
                                     <Link
                                         key={item.name}
                                         to={item.href}
-                                        className={cn(
-                                            "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                                            item.current
-                                                ? "bg-gradient-to-r from-purple-50 to-blue-50 text-purple-700 border border-purple-200"
-                                                : "text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm"
-                                        )}
+                                        className={getNavItemClasses(item.current)}
                                     >
                                         <Icon className="w-4 h-4" />
                                         {item.name}
@@ -106,6 +136,7 @@ export default function MainLayout() {
                             })}
                         </nav>
 
+                        {/* Кнопки справа */}
                         <div className="flex items-center gap-3">
                             <Button
                                 onClick={handleLogout}
@@ -122,11 +153,7 @@ export default function MainLayout() {
                                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                                 className="md:hidden text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl"
                             >
-                                {isMobileMenuOpen ? (
-                                    <X className="w-5 h-5" />
-                                ) : (
-                                    <Menu className="w-5 h-5" />
-                                )}
+                                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                             </Button>
                         </div>
                     </div>
@@ -138,24 +165,41 @@ export default function MainLayout() {
                         <div className="px-4 py-3 space-y-1">
                             {navigation.map((item) => {
                                 const Icon = item.icon;
+                                const mobileClasses = cn(
+                                    "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200",
+                                    item.current
+                                        ? "bg-gradient-to-r from-purple-50 to-blue-50 text-purple-700 border border-purple-200"
+                                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                                );
+
+                                if (item.external) {
+                                    return (
+                                        <a
+                                            key={item.name}
+                                            href={item.href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={mobileClasses}
+                                            onClick={() => setIsMobileMenuOpen(false)}
+                                        >
+                                            <Icon className="w-4 h-4" />
+                                            {item.name}
+                                        </a>
+                                    );
+                                }
+
                                 return (
                                     <Link
                                         key={item.name}
                                         to={item.href}
                                         onClick={() => setIsMobileMenuOpen(false)}
-                                        className={cn(
-                                            "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200",
-                                            item.current
-                                                ? "bg-gradient-to-r from-purple-50 to-blue-50 text-purple-700 border border-purple-200"
-                                                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                                        )}
+                                        className={mobileClasses}
                                     >
                                         <Icon className="w-4 h-4" />
                                         {item.name}
                                     </Link>
                                 );
                             })}
-
                             <button
                                 onClick={handleLogout}
                                 className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-all duration-200"
@@ -169,13 +213,8 @@ export default function MainLayout() {
             </header>
 
             <main className="flex-1 p-4 sm:p-6 lg:p-8">
-                <div className="max-w-7xl mx-auto">
-                    <div className={cn(
-                        "bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-sm",
-                        "hover:shadow-lg transition-shadow duration-300"
-                    )}>
-                        <Outlet />
-                    </div>
+                <div className="max-w-7xl mx-auto h-full">
+                   <Outlet />
                 </div>
             </main>
 
@@ -184,7 +223,7 @@ export default function MainLayout() {
                     <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
                         <p className="text-sm text-gray-600">
                             <span className="font-semibold text-purple-600">Ⓜ️</span>
-                            {" "}Metalogic License Management System v2.0
+                            {" "}Metalogic License Management System v2.1
                         </p>
                     </div>
                 </div>

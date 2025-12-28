@@ -4,6 +4,7 @@ import LoginPage from "@/pages/LoginPage";
 import Dashboard from "@/pages/Dashboard";
 import Logs from "@/pages/Logs";
 import Licenses from "@/pages/Licenses";
+import FileStorage from "@/pages/FileStorage";
 import MainLayout from "@/layouts/MainLayout";
 import type { JSX } from "react";
 import { Toaster } from "@/components/ui/sonner"
@@ -27,8 +28,9 @@ export default function App() {
           }
         >
           <Route index element={<Dashboard />} />
-          <Route path="logs" element={<Logs />} />
           <Route path="licenses" element={<Licenses />} />
+          <Route path="logs" element={<Logs />} />
+          <Route path="files" element={<FileStorage />} />
         </Route>
       </Routes>
         <Toaster richColors position="top-right" />

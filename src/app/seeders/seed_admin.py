@@ -7,9 +7,9 @@ def run_seed():
     db = SessionLocal()
 
     users = [
-        ("admin@example.com", "admin123", UserRole.admin),
-        ("manager@example.com", "manager123", UserRole.manager),
-        ("partner@example.com", "partner123", UserRole.partner),
+        ("admin@metalogic.kz", "Th3m@nwhos0ldth3w0rld$1", UserRole.admin),
+        ("manager@metalogic.kz", "Th3m@nwhos0ldth3w0rld$1", UserRole.manager),
+        ("partner@metalogic.kz", "Th3m@nwhos0ldth3w0rld$1", UserRole.partner),
     ]
 
     for email, password, role in users:
