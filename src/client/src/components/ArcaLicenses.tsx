@@ -5,21 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { v4 as uuidv4 } from "uuid";
 import { Label } from "@/components/ui/label";
-import { RefreshCw, Download, Plus, Search, Loader2, Server } from "lucide-react";
+import { RefreshCw, Download, Plus, Search, Loader2, Server, Wand2 } from "lucide-react"; // Добавил Wand2
 import { ArcaLicenseCard } from "./ArcaLicenseCard";
 import { Pagination } from "./Pagination";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
 export function ArcaLicenses() {
@@ -51,6 +52,18 @@ export function ArcaLicenses() {
     };
 
     useEffect(() => { fetchLicenses(); }, [page, filters]);
+
+    const generateNewKey = () => {
+        setFormData((prev) => ({ ...prev, license_key: uuidv4() }));
+    };
+
+    const openCreateDialog = () => {
+        setFormData({
+            license_key: uuidv4(), 
+            license_date: new Date().toISOString().split('T')[0] 
+        });
+        setIsCreateOpen(true);
+    };
 
     const handleSync = async () => {
         if (loading) return;
@@ -173,7 +186,7 @@ export function ArcaLicenses() {
             bin: license.bin,
             license_key: license.licences_key || license.license_key,
             license_date: license.licences_date ? license.licences_date.split('T')[0] :
-                          license.license_date ? license.license_date.split('T')[0] : '',
+                license.license_date ? license.license_date.split('T')[0] : '',
             expire_date: license.expire_date ? license.expire_date.split('T')[0] : '',
             status: license.status
         });
@@ -189,12 +202,12 @@ export function ArcaLicenses() {
                         <Input
                             placeholder="Поиск по MAC, Org, BIN..."
                             className="pl-10 bg-white"
-                            onChange={(e) => setFilters({...filters, search: e.target.value})}
+                            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                         />
                     </div>
                     <Select
                         value={filters.status}
-                        onValueChange={(v: string) => setFilters({...filters, status: v as ArcaFilters['status']})}
+                        onValueChange={(v: string) => setFilters({ ...filters, status: v as ArcaFilters['status'] })}
                     >
                         <SelectTrigger className="w-[150px] bg-white">
                             <SelectValue placeholder="Статус" />
@@ -215,7 +228,9 @@ export function ArcaLicenses() {
                         <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                         {loading ? 'Sync...' : 'Sync'}
                     </Button>
-                    <Button onClick={() => setIsCreateOpen(true)} className="bg-gradient-to-r from-blue-600 to-cyan-600 border-0 text-white">
+
+                    {/* Используем новую функцию открытия для генерации ключа */}
+                    <Button onClick={openCreateDialog} className="bg-gradient-to-r from-blue-600 to-cyan-600 border-0 text-white">
                         <Plus className="w-4 h-4 mr-2" /> Создать
                     </Button>
                 </div>
@@ -236,11 +251,11 @@ export function ArcaLicenses() {
                         />
                     ))
                 ) : (
-                    <EmptyState title="Лицензии не найдены" icon={Server} actionLabel="Создать" onAction={() => setIsCreateOpen(true)} />
+                    <EmptyState title="Лицензии не найдены" icon={Server} actionLabel="Создать" onAction={openCreateDialog} />
                 )}
             </div>
 
-             {data.items.length > 0 && <Pagination currentPage={page} totalPages={Math.ceil(data.total / 10)} onPageChange={setPage} loading={loading} />}
+            {data.items.length > 0 && <Pagination currentPage={page} totalPages={Math.ceil(data.total / 10)} onPageChange={setPage} loading={loading} />}
 
             {/* Create Dialog */}
             <Dialog open={isCreateOpen} onOpenChange={(val) => !isSubmitting && setIsCreateOpen(val)}>
@@ -252,23 +267,48 @@ export function ArcaLicenses() {
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
                             <Label>MAC Address</Label>
-                            <Input disabled={isSubmitting} onChange={(e) => setFormData({...formData, mac_address: e.target.value})} placeholder="AA:BB:CC:DD:EE:FF" />
+                            <Input disabled={isSubmitting} onChange={(e) => setFormData({ ...formData, mac_address: e.target.value })} placeholder="AA:BB:CC:DD:EE:FF" />
                         </div>
+
+                        {/* Измененный Input с кнопкой генерации */}
                         <div className="grid gap-2">
                             <Label>License Key</Label>
-                            <Input disabled={isSubmitting} onChange={(e) => setFormData({...formData, license_key: e.target.value})} placeholder="UUID key" />
+                            <div className="flex gap-2">
+                                <Input
+                                    disabled={isSubmitting}
+                                    value={formData.license_key || ''}
+                                    onChange={(e) => setFormData({ ...formData, license_key: e.target.value })}
+                                    placeholder="UUID key"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={generateNewKey}
+                                    disabled={isSubmitting}
+                                    title="Сгенерировать новый ключ"
+                                >
+                                    <Wand2 className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
+
                         <div className="grid gap-2">
                             <Label>License Date</Label>
-                            <Input type="date" disabled={isSubmitting} onChange={(e) => setFormData({...formData, license_date: e.target.value})} />
+                            <Input
+                                type="date"
+                                disabled={isSubmitting}
+                                value={formData.license_date || ''}
+                                onChange={(e) => setFormData({ ...formData, license_date: e.target.value })}
+                            />
                         </div>
                         <div className="grid gap-2">
                             <Label>Organization (Optional)</Label>
-                            <Input disabled={isSubmitting} onChange={(e) => setFormData({...formData, org: e.target.value})} />
+                            <Input disabled={isSubmitting} onChange={(e) => setFormData({ ...formData, org: e.target.value })} />
                         </div>
                         <div className="grid gap-2">
                             <Label>BIN (Optional)</Label>
-                            <Input disabled={isSubmitting} onChange={(e) => setFormData({...formData, bin: e.target.value})} />
+                            <Input disabled={isSubmitting} onChange={(e) => setFormData({ ...formData, bin: e.target.value })} />
                         </div>
                     </div>
                     <DialogFooter>
@@ -288,23 +328,42 @@ export function ArcaLicenses() {
                         <DialogDescription>{editingLicense?.mac_address}</DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
-                         <div className="grid gap-2">
+
+                        {/* Измененный Input с кнопкой генерации для редактирования */}
+                        <div className="grid gap-2">
                             <Label>License Key</Label>
-                            <Input disabled={isSubmitting} defaultValue={formData.license_key} onChange={(e) => setFormData({...formData, license_key: e.target.value})} />
+                            <div className="flex gap-2">
+                                <Input
+                                    disabled={isSubmitting}
+                                    value={formData.license_key || ''}
+                                    onChange={(e) => setFormData({ ...formData, license_key: e.target.value })}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={generateNewKey}
+                                    disabled={isSubmitting}
+                                    title="Сгенерировать новый ключ"
+                                >
+                                    <Wand2 className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
+
                         <div className="grid gap-2">
                             <Label>Organization</Label>
-                            <Input disabled={isSubmitting} defaultValue={formData.org} onChange={(e) => setFormData({...formData, org: e.target.value})} />
+                            <Input disabled={isSubmitting} defaultValue={formData.org} onChange={(e) => setFormData({ ...formData, org: e.target.value })} />
                         </div>
                         <div className="grid gap-2">
                             <Label>BIN</Label>
-                            <Input disabled={isSubmitting} defaultValue={formData.bin} onChange={(e) => setFormData({...formData, bin: e.target.value})} />
+                            <Input disabled={isSubmitting} defaultValue={formData.bin} onChange={(e) => setFormData({ ...formData, bin: e.target.value })} />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
                                 <Label>License Date</Label>
-                                <Input type="date" disabled={isSubmitting} defaultValue={formData.license_date} onChange={(e) => setFormData({...formData, license_date: e.target.value})} />
+                                <Input type="date" disabled={isSubmitting} defaultValue={formData.license_date} onChange={(e) => setFormData({ ...formData, license_date: e.target.value })} />
                             </div>
                             <div className="grid gap-2">
                                 <Label className="text-red-600">Expire Date</Label>
@@ -312,7 +371,7 @@ export function ArcaLicenses() {
                                     type="date"
                                     disabled={isSubmitting}
                                     defaultValue={formData.expire_date}
-                                    onChange={(e) => setFormData({...formData, expire_date: e.target.value})}
+                                    onChange={(e) => setFormData({ ...formData, expire_date: e.target.value })}
                                 />
                             </div>
                         </div>
