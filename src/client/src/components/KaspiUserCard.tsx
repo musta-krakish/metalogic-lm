@@ -13,18 +13,22 @@ import { DateDisplay } from "@/components/ui/date-display";
 
 interface Props {
     user: KaspiUser;
+    onClick: (user: KaspiUser) => void;
 }
 
-export function KaspiUserCard({ user }: Props) {
+export function KaspiUserCard({ user, onClick }: Props) {
     const isVerified = user.is_verified;
 
     return (
-        <Card className="p-4 border border-gray-200 hover:shadow-md transition-all duration-300 bg-white">
+        <Card
+            onClick={() => onClick(user)}
+            className="p-4 border border-gray-200 hover:shadow-md transition-all duration-300 bg-white cursor-pointer hover:border-red-200 group"
+        >
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div className="flex-1 space-y-3">
 
                     <div className="flex items-center gap-3 flex-wrap">
-                        <div className="flex items-center gap-2 bg-red-50 px-2 py-1 rounded-md border border-red-100">
+                        <div className="flex items-center gap-2 bg-red-50 px-2 py-1 rounded-md border border-red-100 group-hover:bg-red-100 transition-colors">
                             <User className="w-4 h-4 text-red-600" />
                             <span className="font-bold text-sm text-gray-800">
                                 {user.login || "No Login"}
