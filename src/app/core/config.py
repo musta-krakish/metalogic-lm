@@ -32,6 +32,15 @@ class Settings(BaseSettings):
     TSD_DEVICE_NAME: str
     TSD_ROLE: str
 
+    # KASPI INTEGRATION
+    KASPI_MONGO_HOST: str
+    KASPI_MONGO_PORT: int
+    KASPI_MONGO_USER: str
+    KASPI_MONGO_PASSWORD: str
+    KASPI_MONGO_DB: str
+
+    KASPI_API_URL: str
+
     # Logging / misc
     LOG_LEVEL: str = "INFO"
 

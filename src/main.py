@@ -16,6 +16,7 @@ from app.logs.routes.logs_routes import router as logs_router
 from app.tinda.routes.tinda_routes import router as tinda_router
 from app.arca.routes.arca_routes import router as arca_router
 from app.tsd.routes.tsd_routes import router as tsd_router
+from app.kaspi.routes.kaspi_routes import router as kaspi_router
 
 
 @asynccontextmanager
@@ -37,6 +38,7 @@ app.include_router(logs_router, prefix="/api")
 app.include_router(tinda_router, prefix="/api")
 app.include_router(arca_router, prefix="/api")
 app.include_router(tsd_router, prefix="/api")
+app.include_router(kaspi_router, prefix="/api")
 
 # ---------- CORS ----------
 app.add_middleware(

@@ -4,10 +4,12 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IikoLicenses } from "@/components/IikoLicenses";
 import { Badge } from "@/components/ui/badge";
-import { Shield, RefreshCw } from "lucide-react";
+import { Shield, RefreshCw, Store } from "lucide-react"; // Добавил иконку Store
 import { ArcaLicenses } from "@/components/ArcaLicenses";
 import { TindaUsers } from "@/components/TindaUsers";
 import { TsdUsers } from "@/components/TsdUsers";
+// Импорт нового компонента
+import { KaspiUsers } from "@/components/KaspiUsers";
 
 export default function LicensesPage() {
     const [loading, setLoading] = useState(false);
@@ -67,6 +69,14 @@ export default function LicensesPage() {
                             <Shield className="w-4 h-4" />
                             TSD
                         </TabsTrigger>
+
+                        <TabsTrigger
+                            value="kaspi"
+                            className="flex items-center gap-2 px-6 py-3 data-[state=active]:border-b-2 data-[state=active]:border-red-600 data-[state=active]:text-red-600 rounded-none"
+                        >
+                            <Store className="w-4 h-4" />
+                            Kaspi
+                        </TabsTrigger>
                     </TabsList>
                 </div>
 
@@ -84,6 +94,10 @@ export default function LicensesPage() {
 
                 <TabsContent value="tsd" className="space-y-4 mt-6">
                     <TsdUsers />
+                </TabsContent>
+
+                <TabsContent value="kaspi" className="space-y-4 mt-6">
+                    <KaspiUsers />
                 </TabsContent>
             </Tabs>
         </div>

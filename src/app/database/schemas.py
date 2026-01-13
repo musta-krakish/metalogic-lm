@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, DateTime, Text, JSON, func
+from sqlalchemy import Column, Integer, String, Enum, DateTime, Text, JSON, func, Boolean
 from datetime import datetime
 from .database import Base
 import enum
@@ -55,4 +55,19 @@ class TsdUser(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     data = Column(JSON, nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class KaspiUser(Base):
+    __tablename__ = "kaspi_users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    mongo_id = Column(String, unique=True, index=True)
+    login = Column(String, index=True)
+    role = Column(Integer, nullable=True)
+    is_verified = Column(Boolean, default=False)
+    password_hash = Column(String, nullable=True)
+
+    data = Column(JSON, nullable=True)
+    created_at = Column(DateTime, nullable=True)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
