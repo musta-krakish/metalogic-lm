@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { DashboardService, type SystemStats } from "@/services/dashboard.service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Smartphone, Users, Server, Activity, AlertCircle, CheckCircle, Wifi } from "lucide-react";
+import { Shield, Smartphone, Users, Server, Activity, AlertCircle, CheckCircle, Wifi, Store } from "lucide-react";
 import { LogsService } from "@/services/logs.service";
 import { LogCard } from "@/components/LogCard";
 import type { LogEntry } from "@/types/log";
@@ -16,7 +16,6 @@ export default function Dashboard() {
     useEffect(() => {
         const loadData = async () => {
             try {
-                // Грузим статистику и последние 3 лога
                 const [statsData, logsData] = await Promise.all([
                     DashboardService.getStats(),
                     LogsService.getLogs(1, 3)
@@ -33,13 +32,12 @@ export default function Dashboard() {
         loadData();
     }, []);
 
-    // Компонент скелетона для загрузки
     if (loading) {
         return (
             <div className="p-6 space-y-6">
                 <div className="h-8 w-48 bg-gray-200 rounded-lg animate-pulse mb-6" />
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {[1, 2, 3, 4].map((i) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                    {[1, 2, 3, 4, 5].map((i) => (
                         <div key={i} className="h-32 bg-gray-200 rounded-xl animate-pulse" />
                     ))}
                 </div>
@@ -60,7 +58,7 @@ export default function Dashboard() {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                 {/* Iiko Card */}
                 <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -130,7 +128,24 @@ export default function Dashboard() {
                         <div className="text-2xl font-bold">{stats?.tsd.total}</div>
                         <p className="text-xs text-muted-foreground mt-1 flex items-center">
                             <CheckCircle className="w-3 h-3 mr-1 text-green-500" />
-                            {stats?.tsd.active} активных устройств
+                            {stats?.tsd.active} активных
+                        </p>
+                    </CardContent>
+                </Card>
+
+                {/* KASPI */}
+                <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-gray-500">
+                            Kaspi Users
+                        </CardTitle>
+                        <Store className="h-4 w-4 text-red-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{stats?.kaspi.total}</div>
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center">
+                            <CheckCircle className="w-3 h-3 mr-1 text-green-500" />
+                            {stats?.kaspi.verified} verified
                         </p>
                     </CardContent>
                 </Card>

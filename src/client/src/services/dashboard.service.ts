@@ -5,6 +5,7 @@ export interface SystemStats {
     arca: { total: number; active: number };
     tinda: { total: number; active: number };
     tsd: { total: number; active: number };
+    kaspi: { total: number; verified: number };
     logs: { errors: number };
 }
 
@@ -15,6 +16,7 @@ export const DashboardService = {
             arcaTotal, arcaActive,
             tindaTotal, tindaActive,
             tsdTotal, tsdActive,
+            kaspiTotal, kaspiVerified,
             logsErrors
         ] = await Promise.all([
             // Iiko Stats
@@ -34,7 +36,11 @@ export const DashboardService = {
             api.get("/tsd/users?limit=1"),
             api.get("/tsd/users?limit=1&status=active"),
 
-            // Logs Stats (ошибки за все время или можно добавить фильтр по дате на бэке)
+            // Kaspi Stats
+            api.get("/kaspi/users?limit=1"),
+            api.get("/kaspi/users?limit=1&status=verified"),
+
+            // Logs Stats
             api.get("/logs?limit=1&level=ERROR"),
         ]);
 
@@ -55,6 +61,10 @@ export const DashboardService = {
             tsd: {
                 total: tsdTotal.data.total,
                 active: tsdActive.data.total,
+            },
+            kaspi: {
+                total: kaspiTotal.data.total,
+                verified: kaspiVerified.data.total,
             },
             logs: {
                 errors: logsErrors.data.total,
