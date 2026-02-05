@@ -352,7 +352,7 @@ class TsdController:
                                params={"username": username, "org": org},
                                headers=headers).raise_for_status()
 
-            if bin_code is not None:
+            if bin_code:
                 requests.patch(f"{cls.BASE_URL}api/Admin/SetBIN",
                                params={"username": username, "bin": bin_code},
                                headers=headers).raise_for_status()
